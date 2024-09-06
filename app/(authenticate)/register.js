@@ -7,127 +7,250 @@ import {
   KeyboardAvoidingView,
   TextInput,
   Pressable,
-  Alert,
+  TouchableOpacity,
+  ScrollView,
+  ActivityIndicator,
+  Modal,
 } from "react-native";
 import React, { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Logo from "../../assets/images/logo.png";
+import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+import { API_BASE_URL } from "@env";
 
 const Register = () => {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const [firstNameError, setFirstNameError] = useState("");
+  const [lastNameError, setLastNameError] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [alertVisible, setAlertVisible] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
-    const checkLoginStatus = async () => {
+    const checkSignupStatus = async () => {
       try {
         const token = await AsyncStorage.getItem("authToken");
         if (token) {
           router.replace("/(tabs)/home");
         }
       } catch (error) {
-        console.log(error);
+        console.error("Error retrieving the token:", error);
       }
     };
-    checkLoginStatus();
+    checkSignupStatus();
   }, []);
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
+    if (!firstName) {
+      setFirstNameError("First name is required");
+    } else {
+      setFirstNameError("");
+    }
+
+    if (!lastName) {
+      setLastNameError("Last name is required");
+    } else {
+      setLastNameError("");
+    }
+
+    if (!email) {
+      setEmailError("Email is required");
+    } else {
+      setEmailError("");
+    }
+
+    if (!password) {
+      setPasswordError("Password is required");
+    } else {
+      setPasswordError("");
+    }
+
+    if (!firstName || !lastName || !email || !password) {
+      return;
+    }
+
+    setLoading(true);
     const user = {
       first_name: firstName,
       last_name: lastName,
-      email: email,
+      email: email.toLowerCase(),
       password: password,
     };
 
-    axios
-      .post("http://127.0.0.1:5500/signup", user)
-      .then((response) => {
-        const token = response.data.token;
-        AsyncStorage.setItem("authToken", token);
-        router.replace("/(tabs)/home");
-        Alert.alert(
-          "Registration successful",
-          "You have been registered successfully"
-        );
+    try {
+      const response = await axios.post(`${API_BASE_URL}/signup`, user);
+      const token = response.data.access_token;
+      if (token) {
+        await AsyncStorage.setItem("authToken", token);
+        setAlertVisible(true); // Show custom alert
         setFirstName("");
         setLastName("");
         setEmail("");
         setPassword("");
-      })
-      .catch((error) => {
-        Alert.alert(
-          "Registration failed",
-          "An error occurred during registration"
-        );
-      });
+      }
+    } catch (error) {
+      if (error.response && error.response.data && error.response.data.error) {
+        const errors = error.response.data.error;
+        setFirstNameError(errors.first_name || "");
+        setLastNameError(errors.last_name || "");
+        setEmailError(errors.email || "");
+
+        if (errors.password) {
+          if (Array.isArray(errors.password)) {
+            setPasswordError(errors.password.join("\n"));
+          } else {
+            setPasswordError(errors.password);
+          }
+        } else {
+          setPasswordError("");
+        }
+
+        if (typeof errors === 'string' && errors === "Email already exists") {
+          setEmailError(errors);
+        }
+      } else {
+        setFirstNameError("");
+        setLastNameError("");
+        setEmailError("");
+        setPasswordError("An unexpected error occurred");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAlertDismiss = () => {
+    setAlertVisible(false);
+    router.replace("/(tabs)/home");
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.logoContainer}>
-        <Image source={Logo} style={styles.logo} />
-      </View>
-      <KeyboardAvoidingView>
-        <View style={styles.headerContainer}>
-          <Text style={styles.headerText}>Get Started</Text>
-          <Text style={styles.subHeaderText}>Create your account now</Text>
-        </View>
-
-        <View style={styles.formContainer}>
-          <View style={styles.inputContainer}>
-            <TextInput
-              value={firstName}
-              onChangeText={(text) => setFirstName(text)}
-              style={styles.textInput}
-              placeholder="First name"
-            />
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoidingView}
+        behavior="padding"
+      >
+        <ScrollView contentContainerStyle={styles.scrollViewContent}>
+          <View style={styles.logoContainer}>
+            <Image source={Logo} style={styles.logo} />
           </View>
-
-          <View style={styles.inputContainer}>
-            <TextInput
-              value={lastName}
-              onChangeText={(text) => setLastName(text)}
-              style={styles.textInput}
-              placeholder="Last name"
-            />
+          <View style={styles.headerContainer}>
+            <Text style={styles.headerText}>Get Started</Text>
+            <Text style={styles.subHeaderText}>Create your account now</Text>
           </View>
-
-          <View style={styles.inputContainer}>
-            <TextInput
-              value={email}
-              onChangeText={(text) => setEmail(text)}
-              style={styles.textInput}
-              placeholder="emailaddress@gmail.com"
-            />
+          <View style={styles.formContainer}>
+            <View style={styles.inputContainer}>
+              <TextInput
+                value={firstName}
+                onChangeText={(text) => {
+                  setFirstName(text);
+                  setFirstNameError("");
+                }}
+                style={styles.textInput}
+                placeholder="First name"
+              />
+            </View>
+            {firstNameError ? (
+              <Text style={styles.errorText}>{firstNameError}</Text>
+            ) : null}
+            <View style={styles.inputContainer}>
+              <TextInput
+                value={lastName}
+                onChangeText={(text) => {
+                  setLastName(text);
+                  setLastNameError("");
+                }}
+                style={styles.textInput}
+                placeholder="Last name"
+              />
+            </View>
+            {lastNameError ? (
+              <Text style={styles.errorText}>{lastNameError}</Text>
+            ) : null}
+            <View style={styles.inputContainer}>
+              <TextInput
+                value={email}
+                onChangeText={(text) => {
+                  setEmail(text);
+                  setEmailError("");
+                }}
+                style={styles.textInput}
+                placeholder="emailaddress@gmail.com"
+              />
+            </View>
+            {emailError ? (
+              <Text style={styles.errorText}>{emailError}</Text>
+            ) : null}
+            <View style={styles.inputContainer}>
+              <TextInput
+                value={password}
+                secureTextEntry={!passwordVisible}
+                onChangeText={(text) => {
+                  setPassword(text);
+                  setPasswordError("");
+                }}
+                style={styles.textInput}
+                placeholder="Password"
+              />
+              <TouchableOpacity
+                onPress={() => setPasswordVisible(!passwordVisible)}
+                style={styles.eyeIcon}
+              >
+                <Icon
+                  name={passwordVisible ? "eye-off" : "eye"}
+                  size={20}
+                  color="gray"
+                />
+              </TouchableOpacity>
+            </View>
+            {passwordError ? (
+              <Text style={styles.errorText}>{passwordError}</Text>
+            ) : null}
+            <Pressable onPress={handleRegister} style={styles.registerButton}>
+              <Text style={styles.registerButtonText}>Register</Text>
+            </Pressable>
+            <View style={styles.loginContainer}>
+              <Text style={styles.loginText}>Have an account?</Text>
+              <Pressable onPress={() => router.replace("/login")}>
+                <Text style={styles.loginLink}>Login</Text>
+              </Pressable>
+            </View>
           </View>
-
-          <View style={styles.inputContainer}>
-            <TextInput
-              value={password}
-              secureTextEntry={true}
-              onChangeText={(text) => setPassword(text)}
-              style={styles.textInput}
-              placeholder="Password"
-            />
+        </ScrollView>
+      </KeyboardAvoidingView>
+      {loading && (
+        <Modal transparent={true} animationType="none">
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#00A8FF" />
           </View>
-
-          <Pressable onPress={handleRegister} style={styles.registerButton}>
-            <Text style={styles.registerButtonText}>Register</Text>
-          </Pressable>
-
-          <View style={styles.loginContainer}>
-            <Text style={styles.loginText}>Have an account?</Text>
-            <Pressable onPress={() => router.replace("/login")}>
-              <Text style={styles.loginLink}>Login</Text>
+        </Modal>
+      )}
+      <Modal
+        visible={alertVisible}
+        animationType="slide"
+        onRequestClose={handleAlertDismiss}
+      >
+        <View style={styles.alertContainer}>
+          <View style={styles.alertBox}>
+            <Text style={styles.alertTitle}>Welcome onboard</Text>
+            <Text style={styles.alertMessage}>You have been registered successfully</Text>
+            <Pressable
+              style={styles.alertButton}
+              onPress={handleAlertDismiss}
+            >
+              <Text style={styles.alertButtonText}>OK</Text>
             </Pressable>
           </View>
         </View>
-      </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -138,10 +261,17 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: "white",
+  },
+  keyboardAvoidingView: {
+    flex: 1,
+  },
+  scrollViewContent: {
+    flexGrow: 1,
+    justifyContent: "center",
     alignItems: "center",
   },
   logoContainer: {
-    marginTop: 80,
+    marginTop: 20,
   },
   logo: {
     width: 200,
@@ -163,6 +293,8 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     marginTop: 20,
+    width: "100%",
+    paddingHorizontal: 20,
   },
   inputContainer: {
     borderWidth: 1,
@@ -170,14 +302,25 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     paddingVertical: 4,
     marginTop: 20,
-    width: 370,
+    width: "100%",
     backgroundColor: "#fff",
+    flexDirection: "row",
+    alignItems: "center",
   },
   textInput: {
     color: "gray",
     marginLeft: 15,
     marginVertical: 10,
     fontSize: 16,
+    flex: 1,
+  },
+  eyeIcon: {
+    padding: 10,
+  },
+  errorText: {
+    color: "red",
+    marginTop: 5,
+    marginLeft: 15,
   },
   registerButton: {
     width: 100,
@@ -200,6 +343,7 @@ const styles = StyleSheet.create({
     gap: 5,
     justifyContent: "center",
     alignItems: "center",
+    marginBottom: 20,
   },
   loginText: {
     fontSize: 15,
@@ -209,5 +353,49 @@ const styles = StyleSheet.create({
   loginLink: {
     fontSize: 15,
     color: "#00A8FF",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  alertContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  alertBox: {
+    width: 350,
+    padding: 20,
+    backgroundColor: "white",
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  alertTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 10,
+  },
+  alertMessage: {
+    fontSize: 16,
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  alertButton: {
+    backgroundColor: "#00A8FF",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+  },
+  alertButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "bold",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
 });
