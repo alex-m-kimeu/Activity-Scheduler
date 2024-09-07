@@ -49,23 +49,23 @@ const Login = () => {
     } else {
       setEmailError("");
     }
-
+  
     if (!password) {
       setPasswordError("Password is required");
     } else {
       setPasswordError("");
     }
-
+  
     if (!email || !password) {
       return;
     }
-
+  
     setLoading(true);
     const user = {
       email: email.toLowerCase(),
       password: password,
     };
-
+  
     try {
       const response = await axios.post(`${API_BASE_URL}/signin`, user);
       const token = response.data.access_token;
@@ -73,23 +73,19 @@ const Login = () => {
         await AsyncStorage.setItem("authToken", token);
         router.replace("/(tabs)/home");
       } else {
-        setEmailError("");
         setPasswordError("Token is null or undefined");
       }
     } catch (error) {
       if (error.response && error.response.data && error.response.data.error) {
-        if (error.response.data.error === "User does not exist") {
-          setEmailError(error.response.data.error);
-          setPasswordError("");
-        } else if (error.response.data.error === "Incorrect password") {
-          setPasswordError(error.response.data.error);
-          setEmailError("");
+        const errorMessage = error.response.data.error;
+        if (errorMessage === "User does not exist") {
+          setEmailError(errorMessage);
+        } else if (errorMessage === "Incorrect password") {
+          setPasswordError(errorMessage);
         } else {
-          setEmailError("");
           setPasswordError("An unexpected error occurred");
         }
       } else {
-        setEmailError("");
         setPasswordError("An unexpected error occurred");
       }
     } finally {
@@ -153,7 +149,7 @@ const Login = () => {
             </Pressable>
             <View style={styles.signUpContainer}>
               <Text style={styles.signUpText}>Don't have an account?</Text>
-              <Pressable onPress={() => router.replace("/register")}>
+              <Pressable onPress={() => router.replace("/Register")}>
                 <Text style={styles.signUpLink}>Sign up</Text>
               </Pressable>
             </View>

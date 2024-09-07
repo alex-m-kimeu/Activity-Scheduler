@@ -54,29 +54,29 @@ const Register = () => {
     } else {
       setFirstNameError("");
     }
-
+  
     if (!lastName) {
       setLastNameError("Last name is required");
     } else {
       setLastNameError("");
     }
-
+  
     if (!email) {
       setEmailError("Email is required");
     } else {
       setEmailError("");
     }
-
+  
     if (!password) {
       setPasswordError("Password is required");
     } else {
       setPasswordError("");
     }
-
+  
     if (!firstName || !lastName || !email || !password) {
       return;
     }
-
+  
     setLoading(true);
     const user = {
       first_name: firstName,
@@ -84,42 +84,32 @@ const Register = () => {
       email: email.toLowerCase(),
       password: password,
     };
-
+  
     try {
       const response = await axios.post(`${API_BASE_URL}/signup`, user);
       const token = response.data.access_token;
       if (token) {
         await AsyncStorage.setItem("authToken", token);
-        setAlertVisible(true); // Show custom alert
+        setAlertVisible(true);
         setFirstName("");
         setLastName("");
         setEmail("");
         setPassword("");
+      } else {
+        setPasswordError("Token is null or undefined");
       }
     } catch (error) {
       if (error.response && error.response.data && error.response.data.error) {
-        const errors = error.response.data.error;
-        setFirstNameError(errors.first_name || "");
-        setLastNameError(errors.last_name || "");
-        setEmailError(errors.email || "");
-
-        if (errors.password) {
-          if (Array.isArray(errors.password)) {
-            setPasswordError(errors.password.join("\n"));
-          } else {
-            setPasswordError(errors.password);
-          }
+        const errorMessage = error.response.data.error;
+        if (errorMessage === "Email already exists") {
+          setEmailError(errorMessage);
         } else {
-          setPasswordError("");
-        }
-
-        if (typeof errors === 'string' && errors === "Email already exists") {
-          setEmailError(errors);
+          setFirstNameError(errorMessage.first_name || "");
+          setLastNameError(errorMessage.last_name || "");
+          setEmailError(errorMessage.email || "");
+          setPasswordError(errorMessage.password || "An unexpected error occurred");
         }
       } else {
-        setFirstNameError("");
-        setLastNameError("");
-        setEmailError("");
         setPasswordError("An unexpected error occurred");
       }
     } finally {
@@ -219,7 +209,7 @@ const Register = () => {
             </Pressable>
             <View style={styles.loginContainer}>
               <Text style={styles.loginText}>Have an account?</Text>
-              <Pressable onPress={() => router.replace("/login")}>
+              <Pressable onPress={() => router.replace("/Login")}>
                 <Text style={styles.loginLink}>Login</Text>
               </Pressable>
             </View>
@@ -227,7 +217,7 @@ const Register = () => {
         </ScrollView>
       </KeyboardAvoidingView>
       {loading && (
-        <Modal transparent={true} animationType="none">
+        <Modal animationType="none">
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#00A8FF" />
           </View>
@@ -358,18 +348,28 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: "#fff",
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   alertContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: "#fff",
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   alertBox: {
     width: 350,
     padding: 20,
-    backgroundColor: "white",
+    backgroundColor: "#F3F4F6",
     borderRadius: 10,
     alignItems: "center",
   },
