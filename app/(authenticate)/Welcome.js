@@ -7,15 +7,34 @@ import {
   Pressable,
   ScrollView,
 } from "react-native";
-import React from "react";
+import React, { useEffect, useCallback } from "react";
 import Bg from "../../assets/images/bg.png";
 import { useRouter } from "expo-router";
+import { useFonts, NunitoSans_400Regular, NunitoSans_700Bold } from '@expo-google-fonts/nunito-sans';
+import * as SplashScreen from 'expo-splash-screen';
+
+SplashScreen.preventAutoHideAsync();
 
 const Welcome = () => {
   const router = useRouter();
 
+  let [fontsLoaded] = useFonts({
+    NunitoSans_400Regular,
+    NunitoSans_700Bold,
+  });
+
+  const onLayoutRootView = useCallback(async () => {
+    if (fontsLoaded) {
+      await SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded]);
+
+  if (!fontsLoaded) {
+    return null;
+  }
+
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} onLayout={onLayoutRootView}>
       <ScrollView contentContainerStyle={styles.scrollViewContent}>
         <View style={styles.logoContainer}>
           <Image source={Bg} style={styles.logo} />
@@ -72,11 +91,13 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginTop: 10,
     color: "#4b5563",
+    fontFamily: "NunitoSans_700Bold",
   },
   subHeaderText: {
     fontSize: 50,
     fontWeight: "600",
     color: "#4b5563",
+    fontFamily: "NunitoSans_700Bold",
   },
   slogan: {
     color: "#4b5563",
@@ -84,6 +105,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 26,
     fontWeight: "normal",
+    fontFamily: "NunitoSans_400Regular",
   },
   registerButton: {
     width: "100%",
@@ -99,6 +121,7 @@ const styles = StyleSheet.create({
     color: "white",
     fontWeight: "bold",
     fontSize: 15,
+    fontFamily: "NunitoSans_700Bold",
   },
   loginContainer: {
     marginTop: 20,
@@ -112,10 +135,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#4b5563",
     fontWeight: "300",
+    fontFamily: "NunitoSans_400Regular",
   },
   loginLink: {
     fontSize: 15,
     color: "#00A8FF",
     textDecorationLine: "underline",
+    fontFamily: "NunitoSans_400Regular",
   },
 });

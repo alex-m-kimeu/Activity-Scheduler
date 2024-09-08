@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -20,6 +20,10 @@ import { useRouter } from "expo-router";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import ImageResizer from 'react-native-image-resizer';
+import { useFonts, NunitoSans_400Regular, NunitoSans_700Bold } from '@expo-google-fonts/nunito-sans';
+import * as SplashScreen from 'expo-splash-screen';
+
+SplashScreen.preventAutoHideAsync();
 
 const Account = () => {
   const router = useRouter();
@@ -36,6 +40,17 @@ const Account = () => {
     image: "",
     bio: "",
   });
+
+  let [fontsLoaded] = useFonts({
+    NunitoSans_400Regular,
+    NunitoSans_700Bold,
+  });
+
+  const onLayoutRootView = useCallback(async () => {
+    if (fontsLoaded) {
+      await SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded]);
 
   useEffect(() => {
     fetchUserProfile();
@@ -166,26 +181,26 @@ const Account = () => {
     setEditedProfile({ ...editedProfile, [name]: value });
   };
 
-const pickImage = async () => {
-  let result = await ImagePicker.launchImageLibraryAsync({
-    mediaTypes: ImagePicker.MediaTypeOptions.Images,
-    allowsEditing: true,
-    aspect: [4, 3],
-    quality: 1,
-  });
+  const pickImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
 
-  if (!result.canceled) {
-    const resizedImage = await ImageResizer.createResizedImage(
-      result.assets[0].uri,
-      800,
-      600, 
-      'JPEG', 
-      80 
-    );
+    if (!result.canceled) {
+      const resizedImage = await ImageResizer.createResizedImage(
+        result.assets[0].uri,
+        800,
+        600, 
+        'JPEG', 
+        80 
+      );
 
-    setEditedProfile({ ...editedProfile, image: resizedImage.uri });
-  }
-};
+      setEditedProfile({ ...editedProfile, image: resizedImage.uri });
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -209,7 +224,7 @@ const pickImage = async () => {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} onLayout={onLayoutRootView}>
       <ScrollView contentContainerStyle={styles.scrollViewContent}>
         <View style={styles.buttonContainer}>
           <Pressable onPress={handleBackToHome} style={styles.backButton}>
@@ -305,13 +320,16 @@ const styles = StyleSheet.create({
   },
   scrollViewContent: {
     flexGrow: 1,
-    paddingHorizontal: 25,
+    paddingHorizontal: 20,
   },
   buttonContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: 20,
+    marginTop: 10,
+  },
+  backButton: {
+    padding: 8,
   },
   logoutButton: {
     flexDirection: "row",
@@ -326,6 +344,7 @@ const styles = StyleSheet.create({
     marginRight: 5,
     fontSize: 14,
     fontWeight: "bold",
+    fontFamily: "NunitoSans_700Bold",
   },
   profileContainer: {
     alignItems: "center",
@@ -341,6 +360,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "bold",
     color: "#2d2e2e",
+    fontFamily: "NunitoSans_700Bold",
   },
   profileBio: {
     fontSize: 16,
@@ -348,6 +368,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     textAlign: "center",
     paddingHorizontal: 20,
+    fontFamily: "NunitoSans_400Regular",
   },
   editButtonContainer: {
     alignItems: "center",
@@ -367,6 +388,7 @@ const styles = StyleSheet.create({
     marginRight: 5,
     fontSize: 14,
     fontWeight: "bold",
+    fontFamily: "NunitoSans_700Bold",
   },
   loaderContainer: {
     flex: 1,
@@ -404,6 +426,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "bold",
     marginBottom: 20,
+    fontFamily: "NunitoSans_700Bold",
   },
   input: {
     width: "100%",
@@ -412,6 +435,7 @@ const styles = StyleSheet.create({
     borderColor: "#ccc",
     borderRadius: 5,
     marginBottom: 10,
+    fontFamily: "NunitoSans_400Regular",
   },
   imagePickerButton: {
     backgroundColor: "#00A8FF",
@@ -422,6 +446,7 @@ const styles = StyleSheet.create({
   imagePickerButtonText: {
     color: "white",
     fontWeight: "bold",
+    fontFamily: "NunitoSans_700Bold",
   },
   modalButtonContainer: {
     flexDirection: "row",
@@ -439,6 +464,7 @@ const styles = StyleSheet.create({
     color: "white",
     fontWeight: "bold",
     textAlign: "center",
+    fontFamily: "NunitoSans_700Bold",
   },
   cancelButton: {
     backgroundColor: "#ccc",
@@ -451,5 +477,6 @@ const styles = StyleSheet.create({
     color: "white",
     fontWeight: "bold",
     textAlign: "center",
+    fontFamily: "NunitoSans_700Bold",
   },
 });

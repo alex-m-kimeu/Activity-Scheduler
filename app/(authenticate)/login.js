@@ -12,13 +12,17 @@ import {
   ActivityIndicator,
   Modal,
 } from "react-native";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "expo-router";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Logo from "../../assets/images/logo.png";
 import { API_BASE_URL } from "@env";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+import { useFonts, NunitoSans_400Regular, NunitoSans_700Bold } from '@expo-google-fonts/nunito-sans';
+import * as SplashScreen from 'expo-splash-screen';
+
+SplashScreen.preventAutoHideAsync();
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -28,6 +32,17 @@ const Login = () => {
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+
+  let [fontsLoaded] = useFonts({
+    NunitoSans_400Regular,
+    NunitoSans_700Bold,
+  });
+
+  const onLayoutRootView = useCallback(async () => {
+    if (fontsLoaded) {
+      await SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded]);
 
   useEffect(() => {
     const checkLoginStatus = async () => {
@@ -93,8 +108,12 @@ const Login = () => {
     }
   };
 
+  if (!fontsLoaded) {
+    return null;
+  }
+
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} onLayout={onLayoutRootView}>
       <KeyboardAvoidingView style={styles.keyboardAvoidingView} behavior="padding">
         <ScrollView contentContainerStyle={styles.scrollViewContent}>
           <View style={styles.logoContainer}>
@@ -194,14 +213,16 @@ const styles = StyleSheet.create({
   },
   headerText: {
     fontSize: 30,
-    fontWeight: "600",
+    fontWeight: "700",
     marginTop: 20,
     color: "#2d2e2e",
+    fontFamily: "NunitoSans_700Bold",
   },
   subHeaderText: {
     fontSize: 14,
-    fontWeight: "300",
+    fontWeight: "400",
     color: "#4b5563",
+    fontFamily: "NunitoSans_400Regular",
   },
   formContainer: {
     marginTop: 20,
@@ -212,6 +233,7 @@ const styles = StyleSheet.create({
     color: "red",
     marginTop: 5,
     marginLeft: 15,
+    fontFamily: "NunitoSans_400Regular",
   },
   inputContainer: {
     borderWidth: 1,
@@ -230,6 +252,7 @@ const styles = StyleSheet.create({
     marginVertical: 10,
     fontSize: 16,
     flex: 1,
+    fontFamily: "NunitoSans_400Regular",
   },
   eyeIcon: {
     padding: 10,
@@ -248,6 +271,7 @@ const styles = StyleSheet.create({
     color: "white",
     fontWeight: "bold",
     fontSize: 15,
+    fontFamily: "NunitoSans_700Bold", 
   },
   signUpContainer: {
     marginTop: 20,
@@ -260,11 +284,14 @@ const styles = StyleSheet.create({
   signUpText: {
     fontSize: 15,
     color: "#4b5563",
-    fontWeight: "300",
+    fontWeight: "400",
+    fontFamily: "NunitoSans_400Regular", 
   },
   signUpLink: {
     fontSize: 15,
     color: "#00A8FF",
+    fontFamily: "NunitoSans_400Regular",
+    textDecorationLine: "underline",
   },
   loadingContainer: {
     flex: 1,
