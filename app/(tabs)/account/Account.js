@@ -92,7 +92,7 @@ const Account = () => {
         setLoading(false);
         return;
       }
-      const response = await fetch(`${API_BASE_URL}/user`, {
+      const response = await fetch(`https://3b01-2c0f-2a80-10c0-4210-dc36-f099-6af0-d02e.ngrok-free.app/user`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -131,8 +131,8 @@ const Account = () => {
         console.error("No token found");
         return false;
       }
-  
-      const response = await fetch(`${API_BASE_URL}/validate-old-password`, {
+
+      const response = await fetch(`https://3b01-2c0f-2a80-10c0-4210-dc36-f099-6af0-d02e.ngrok-free.app/validate-old-password`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -140,7 +140,7 @@ const Account = () => {
         },
         body: JSON.stringify({ old_password: editedProfile.oldPassword }),
       });
-  
+
       if (!response.ok) {
         const errorData = await response.json();
         if (errorData.error === "Old password does not match") {
@@ -150,7 +150,7 @@ const Account = () => {
         }
         return false;
       }
-  
+
       setPasswordError("");
       return true;
     } catch (error) {
@@ -163,7 +163,7 @@ const Account = () => {
 
   const handleSaveProfile = async () => {
     const errors = {};
-
+  
     // Validate first name
     if (!editedProfile.firstName.trim()) {
       errors.firstName = "First name should not be empty";
@@ -171,7 +171,7 @@ const Account = () => {
     } else {
       setFirstNameError("");
     }
-
+  
     // Validate last name
     if (!editedProfile.lastName.trim()) {
       errors.lastName = "Last name should not be empty";
@@ -179,15 +179,15 @@ const Account = () => {
     } else {
       setLastNameError("");
     }
-
+  
     // Validate bio
-    if (editedProfile.bio.trim().split(" ").length > 50) {
+    if (editedProfile.bio.trim().split(/\s+/).length >= 50) {
       errors.bio = "Bio should not exceed 50 words";
       setBioError(errors.bio);
     } else {
       setBioError("");
     }
-
+  
     // Validate new password
     if (editedProfile.oldPassword && editedProfile.newPassword) {
       if (editedProfile.newPassword.length < 6) {
@@ -205,11 +205,11 @@ const Account = () => {
       }
       setPasswordError(errors.newPassword);
     }
-
+  
     if (Object.keys(errors).length > 0) {
       return;
     }
-
+  
     // Validate old password before proceeding
     if (editedProfile.oldPassword) {
       const isOldPasswordValid = await validateOldPassword();
@@ -217,7 +217,7 @@ const Account = () => {
         return;
       }
     }
-
+  
     try {
       setProfileUpdateLoading(true);
       const token = await AsyncStorage.getItem("authToken");
@@ -230,17 +230,17 @@ const Account = () => {
       formData.append("first_name", editedProfile.firstName);
       formData.append("last_name", editedProfile.lastName);
       formData.append("bio", editedProfile.bio);
-
+  
       if (editedProfile.oldPassword && editedProfile.newPassword) {
         formData.append("old_password", editedProfile.oldPassword);
         formData.append("new_password", editedProfile.newPassword);
       }
-
+  
       if (editedProfile.image) {
         const uri = editedProfile.image;
         const uriParts = uri.split(".");
         const fileType = uriParts[uriParts.length - 1];
-
+        
         const response = await fetch(uri);
         const blob = await response.blob();
 
@@ -250,15 +250,15 @@ const Account = () => {
           type: `image/${fileType}`,
         });
       }
-
-      const response = await fetch(`${API_BASE_URL}/user`, {
+  
+      const response = await fetch(`https://3b01-2c0f-2a80-10c0-4210-dc36-f099-6af0-d02e.ngrok-free.app/user`, {
         method: "PATCH",
         headers: {
           Authorization: `Bearer ${token}`,
         },
         body: formData,
       });
-
+  
       if (!response.ok) {
         const errorData = await response.json();
         if (errorData.errors) {
@@ -282,7 +282,7 @@ const Account = () => {
         }
         return;
       }
-
+  
       const data = await response.json();
       setUser(data);
       setModalVisible(false);
@@ -320,7 +320,7 @@ const Account = () => {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 3],
-      quality: 1,
+      quality: 0.5,
     });
 
     if (!result.canceled) {
@@ -329,7 +329,7 @@ const Account = () => {
         800,
         600,
         "JPEG",
-        80
+        80 
       );
 
       setEditedProfile({ ...editedProfile, image: resizedImage.uri });
@@ -393,6 +393,14 @@ const Account = () => {
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Edit Profile</Text>
+            <Image
+              source={
+                editedProfile.image
+                  ? { uri: editedProfile.image }
+                  : renderUserImageSource()
+              }
+              style={styles.profileImage}
+            />
             <View style={styles.inputContainer}>
               <TextInput
                 value={editedProfile.firstName}
@@ -560,6 +568,12 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#2d2e2e",
     fontFamily: "NunitoSans_700Bold",
+  },
+  profileImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    marginBottom: 10,
   },
   profileBio: {
     fontSize: 16,

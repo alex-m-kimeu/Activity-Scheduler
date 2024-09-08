@@ -101,7 +101,7 @@ const Register = () => {
     };
   
     try {
-      const response = await axios.post(`${API_BASE_URL}/signup`, user);
+      const response = await axios.post(`https://3b01-2c0f-2a80-10c0-4210-dc36-f099-6af0-d02e.ngrok-free.app/signup`, user);
       const token = response.data.access_token;
       if (token) {
         await AsyncStorage.setItem("authToken", token);
