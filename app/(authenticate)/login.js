@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   logo: {
-    width: 200,
+    width: 300,
     resizeMode: "contain",
   },
   headerContainer: {

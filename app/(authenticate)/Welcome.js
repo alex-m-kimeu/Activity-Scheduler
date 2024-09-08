@@ -10,7 +10,7 @@ import {
 import React, { useEffect, useCallback } from "react";
 import Bg from "../../assets/images/bg.png";
 import { useRouter } from "expo-router";
-import { useFonts, NunitoSans_400Regular, NunitoSans_700Bold } from '@expo-google-fonts/nunito-sans';
+import { useFonts, NunitoSans_400Regular, NunitoSans_700Bold, NunitoSans_600SemiBold } from '@expo-google-fonts/nunito-sans';
 import * as SplashScreen from 'expo-splash-screen';
 
 SplashScreen.preventAutoHideAsync();
@@ -20,6 +20,7 @@ const Welcome = () => {
 
   let [fontsLoaded] = useFonts({
     NunitoSans_400Regular,
+    NunitoSans_600SemiBold, 
     NunitoSans_700Bold,
   });
 
@@ -104,8 +105,8 @@ const styles = StyleSheet.create({
     marginVertical: 20,
     fontSize: 14,
     lineHeight: 26,
-    fontWeight: "normal",
-    fontFamily: "NunitoSans_400Regular",
+    fontWeight: "600",
+    fontFamily: "NunitoSans_600SemiBold",
   },
   registerButton: {
     width: "100%",

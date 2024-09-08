@@ -46,27 +46,29 @@ const Home = () => {
         setLoading(false);
         return;
       }
-
+  
       const response = await fetch(`${API_BASE_URL}/activities${endpoint}`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
-
+  
       if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Failed to fetch activities:", errorData);
         throw new Error("Failed to fetch activities");
       }
-
+  
       const data = await response.json();
       setActivities(data);
     } catch (error) {
-      console.error("Error fetching activities:", error);
+      console.error("Error fetching activities:", error.message);
     } finally {
       setLoading(false);
     }
   };
-
+  
   useEffect(() => {
     const endpoint = filter === "all" ? "/all" : "";
     fetchActivities(endpoint);

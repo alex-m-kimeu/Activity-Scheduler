@@ -10,6 +10,7 @@ import {
   Image,
   Alert,
   Modal,
+  TouchableOpacity,
   ActivityIndicator,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -19,9 +20,14 @@ import { API_BASE_URL } from "@env";
 import { useRouter } from "expo-router";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import ImageResizer from 'react-native-image-resizer';
-import { useFonts, NunitoSans_400Regular, NunitoSans_700Bold } from '@expo-google-fonts/nunito-sans';
-import * as SplashScreen from 'expo-splash-screen';
+import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+import ImageResizer from "react-native-image-resizer";
+import {
+  useFonts,
+  NunitoSans_400Regular,
+  NunitoSans_700Bold,
+} from "@expo-google-fonts/nunito-sans";
+import * as SplashScreen from "expo-splash-screen";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -31,7 +37,9 @@ const Account = () => {
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
+  const [passwordVisible, setPasswordVisible] = useState(false);
   const [profileUpdateLoading, setProfileUpdateLoading] = useState(false);
+  const [validatingOldPassword, setValidatingOldPassword] = useState(false);
   const [editedProfile, setEditedProfile] = useState({
     firstName: "",
     lastName: "",
@@ -40,6 +48,12 @@ const Account = () => {
     image: "",
     bio: "",
   });
+
+  const [firstNameError, setFirstNameError] = useState("");
+  const [lastNameError, setLastNameError] = useState("");
+  const [bioError, setBioError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [alertVisible, setAlertVisible] = useState(false);
 
   let [fontsLoaded] = useFonts({
     NunitoSans_400Regular,
@@ -85,13 +99,15 @@ const Account = () => {
         },
       });
       if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Failed to fetch user profile:", errorData);
         throw new Error("Failed to fetch user profile");
       }
       const data = await response.json();
       setUser(data);
       setEditMode(false);
     } catch (error) {
-      console.error("Error fetching user profile:", error);
+      console.error("Error fetching user profile:", error.message);
     } finally {
       setLoading(false);
     }
@@ -107,7 +123,101 @@ const Account = () => {
 
   const handleEditProfile = () => setModalVisible(true);
 
+  const validateOldPassword = async () => {
+    try {
+      setValidatingOldPassword(true);
+      const token = await AsyncStorage.getItem("authToken");
+      if (!token) {
+        console.error("No token found");
+        return false;
+      }
+  
+      const response = await fetch(`${API_BASE_URL}/validate-old-password`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ old_password: editedProfile.oldPassword }),
+      });
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        if (errorData.error === "Old password does not match") {
+          setPasswordError("Old password does not match");
+        } else {
+          console.error("Failed to validate old password:", errorData);
+        }
+        return false;
+      }
+  
+      setPasswordError("");
+      return true;
+    } catch (error) {
+      console.error("Error validating old password:", error.message);
+      return false;
+    } finally {
+      setValidatingOldPassword(false);
+    }
+  };
+
   const handleSaveProfile = async () => {
+    const errors = {};
+
+    // Validate first name
+    if (!editedProfile.firstName.trim()) {
+      errors.firstName = "First name should not be empty";
+      setFirstNameError(errors.firstName);
+    } else {
+      setFirstNameError("");
+    }
+
+    // Validate last name
+    if (!editedProfile.lastName.trim()) {
+      errors.lastName = "Last name should not be empty";
+      setLastNameError(errors.lastName);
+    } else {
+      setLastNameError("");
+    }
+
+    // Validate bio
+    if (editedProfile.bio.trim().split(" ").length > 50) {
+      errors.bio = "Bio should not exceed 50 words";
+      setBioError(errors.bio);
+    } else {
+      setBioError("");
+    }
+
+    // Validate new password
+    if (editedProfile.oldPassword && editedProfile.newPassword) {
+      if (editedProfile.newPassword.length < 6) {
+        errors.newPassword = "Password should be at least 6 characters long";
+      } else if (!/[A-Z]/.test(editedProfile.newPassword)) {
+        errors.newPassword = "Password should contain at least one uppercase letter";
+      } else if (!/[a-z]/.test(editedProfile.newPassword)) {
+        errors.newPassword = "Password should contain at least one lowercase letter";
+      } else if (!/[0-9]/.test(editedProfile.newPassword)) {
+        errors.newPassword = "Password should contain at least one digit";
+      } else if (!/[!@#$%^&*(),.?\":{}|<>]/.test(editedProfile.newPassword)) {
+        errors.newPassword = "Password should contain at least one special character";
+      } else {
+        setPasswordError("");
+      }
+      setPasswordError(errors.newPassword);
+    }
+
+    if (Object.keys(errors).length > 0) {
+      return;
+    }
+
+    // Validate old password before proceeding
+    if (editedProfile.oldPassword) {
+      const isOldPasswordValid = await validateOldPassword();
+      if (!isOldPasswordValid) {
+        return;
+      }
+    }
+
     try {
       setProfileUpdateLoading(true);
       const token = await AsyncStorage.getItem("authToken");
@@ -120,27 +230,27 @@ const Account = () => {
       formData.append("first_name", editedProfile.firstName);
       formData.append("last_name", editedProfile.lastName);
       formData.append("bio", editedProfile.bio);
-  
+
       if (editedProfile.oldPassword && editedProfile.newPassword) {
         formData.append("old_password", editedProfile.oldPassword);
         formData.append("new_password", editedProfile.newPassword);
       }
-  
+
       if (editedProfile.image) {
         const uri = editedProfile.image;
         const uriParts = uri.split(".");
         const fileType = uriParts[uriParts.length - 1];
-  
+
         const response = await fetch(uri);
         const blob = await response.blob();
-  
+
         formData.append("image", {
           uri,
           name: `photo.${fileType}`,
           type: `image/${fileType}`,
         });
       }
-  
+
       const response = await fetch(`${API_BASE_URL}/user`, {
         method: "PATCH",
         headers: {
@@ -148,21 +258,45 @@ const Account = () => {
         },
         body: formData,
       });
-  
+
       if (!response.ok) {
-        throw new Error("Failed to update profile");
+        const errorData = await response.json();
+        if (errorData.errors) {
+          if (errorData.errors.first_name) {
+            setFirstNameError(errorData.errors.first_name);
+          }
+          if (errorData.errors.last_name) {
+            setLastNameError(errorData.errors.last_name);
+          }
+          if (errorData.errors.bio) {
+            setBioError(errorData.errors.bio);
+          }
+          if (errorData.errors.password) {
+            setPasswordError(errorData.errors.password);
+          }
+        } else if (errorData.error === "Old password does not match") {
+          setPasswordError("Old password does not match");
+        } else {
+          console.error("Failed to update profile:", errorData);
+          throw new Error("Failed to update profile");
+        }
+        return;
       }
-  
+
       const data = await response.json();
       setUser(data);
       setModalVisible(false);
-      Alert.alert("Profile updated successfully");
+      setAlertVisible(true);
     } catch (error) {
-      console.error("Error updating profile:", error);
-      Alert.alert("Error updating profile. Please try again.");
+      console.error("Error updating profile:", error.message);
     } finally {
       setProfileUpdateLoading(false);
     }
+  };
+
+  const handleAlertDismiss = () => {
+    setAlertVisible(false);
+    router.replace("/(tabs)/account");
   };
 
   const handleCancelEdit = () => {
@@ -193,9 +327,9 @@ const Account = () => {
       const resizedImage = await ImageResizer.createResizedImage(
         result.assets[0].uri,
         800,
-        600, 
-        'JPEG', 
-        80 
+        600,
+        "JPEG",
+        80
       );
 
       setEditedProfile({ ...editedProfile, image: resizedImage.uri });
@@ -241,9 +375,7 @@ const Account = () => {
             {user ? `${user.first_name} ${user.last_name}` : ""}
           </Text>
           {user && user.bio && (
-            <Text style={styles.profileBio}>
-              {user.bio}
-            </Text>
+            <Text style={styles.profileBio}>{user.bio}</Text>
           )}
         </View>
         <View style={styles.editButtonContainer}>
@@ -261,49 +393,116 @@ const Account = () => {
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Edit Profile</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="First Name"
-              value={editedProfile.firstName}
-              onChangeText={(text) => handleInputChange("firstName", text)}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Last Name"
-              value={editedProfile.lastName}
-              onChangeText={(text) => handleInputChange("lastName", text)}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Bio"
-              value={editedProfile.bio}
-              onChangeText={(text) => handleInputChange("bio", text)}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Old Password"
-              secureTextEntry
-              value={editedProfile.oldPassword}
-              onChangeText={(text) => handleInputChange("oldPassword", text)}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="New Password"
-              secureTextEntry
-              value={editedProfile.newPassword}
-              onChangeText={(text) => handleInputChange("newPassword", text)}
-            />
+            <View style={styles.inputContainer}>
+              <TextInput
+                value={editedProfile.firstName}
+                onChangeText={(text) => handleInputChange("firstName", text)}
+                style={styles.textInput}
+                placeholder="First Name"
+              />
+            </View>
+            {firstNameError ? (
+              <Text style={styles.errorText}>{firstNameError}</Text>
+            ) : null}
+            <View style={styles.inputContainer}>
+              <TextInput
+                value={editedProfile.lastName}
+                onChangeText={(text) => handleInputChange("lastName", text)}
+                style={styles.textInput}
+                placeholder="Last Name"
+              />
+            </View>
+            {lastNameError ? (
+              <Text style={styles.errorText}>{lastNameError}</Text>
+            ) : null}
+            <View style={styles.inputContainer}>
+              <TextInput
+                value={editedProfile.bio}
+                onChangeText={(text) => handleInputChange("bio", text)}
+                style={styles.textInput}
+                placeholder="Bio"
+                multiline={true}
+                numberOfLines={3}
+              />
+            </View>
+            {bioError ? <Text style={styles.errorText}>{bioError}</Text> : null}
+            <View style={styles.inputContainer}>
+              <TextInput
+                value={editedProfile.oldPassword}
+                secureTextEntry={!passwordVisible}
+                onChangeText={(text) => handleInputChange("oldPassword", text)}
+                style={styles.textInput}
+                placeholder="Old Password"
+              />
+              <TouchableOpacity
+                onPress={() => setPasswordVisible(!passwordVisible)}
+                style={styles.eyeIcon}
+              >
+                <Icon
+                  name={passwordVisible ? "eye-off" : "eye"}
+                  size={20}
+                  color="gray"
+                />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.inputContainer}>
+              <TextInput
+                value={editedProfile.newPassword}
+                secureTextEntry={!passwordVisible}
+                onChangeText={(text) => handleInputChange("newPassword", text)}
+                style={styles.textInput}
+                placeholder="New Password"
+              />
+              <TouchableOpacity
+                onPress={() => setPasswordVisible(!passwordVisible)}
+                style={styles.eyeIcon}
+              >
+                <Icon
+                  name={passwordVisible ? "eye-off" : "eye"}
+                  size={20}
+                  color="gray"
+                />
+              </TouchableOpacity>
+            </View>
+            {passwordError ? (
+              <Text style={styles.errorText}>{passwordError}</Text>
+            ) : null}
             <Pressable onPress={pickImage} style={styles.imagePickerButton}>
               <Text style={styles.imagePickerButtonText}>Pick an Image</Text>
             </Pressable>
             <View style={styles.modalButtonContainer}>
-              <Pressable onPress={handleSaveProfile} style={styles.saveButton}>
-                <Text style={styles.saveButtonText}>Save</Text>
+              <Pressable
+                onPress={handleSaveProfile}
+                style={styles.saveButton}
+                disabled={validatingOldPassword}
+              >
+                {validatingOldPassword ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.saveButtonText}>Save</Text>
+                )}
               </Pressable>
               <Pressable onPress={handleCancelEdit} style={styles.cancelButton}>
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </Pressable>
             </View>
+          </View>
+        </View>
+      </Modal>
+      <Modal
+        visible={alertVisible}
+        animationType="slide"
+        onRequestClose={handleAlertDismiss}
+      >
+        <View style={styles.alertContainer}>
+          <View style={styles.alertBox}>
+            <Text style={styles.alertMessage}>Profile updated successfully</Text>
+            <Pressable
+              style={styles.alertButton}
+              onPress={handleAlertDismiss}
+            >
+              <Text style={styles.alertButtonText}>OK</Text>
+            </Pressable>
           </View>
         </View>
       </Modal>
@@ -351,9 +550,9 @@ const styles = StyleSheet.create({
     marginTop: 80,
   },
   profileImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 150,
+    height: 150,
+    borderRadius: 70,
     marginBottom: 10,
   },
   profileName: {
@@ -408,7 +607,7 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
   },
   modalContent: {
-    width: "80%",
+    width: 370,
     backgroundColor: "white",
     borderRadius: 10,
     padding: 20,
@@ -425,23 +624,43 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: "bold",
-    marginBottom: 20,
+    marginBottom: 15,
     fontFamily: "NunitoSans_700Bold",
+    color: "#2d2e2e",
   },
-  input: {
-    width: "100%",
-    padding: 10,
+  inputContainer: {
     borderWidth: 1,
-    borderColor: "#ccc",
+    borderColor: "#ddd",
     borderRadius: 5,
-    marginBottom: 10,
+    paddingVertical: 4,
+    margin: 10,
+    width: "100%",
+    backgroundColor: "#fff",
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  textInput: {
+    color: "gray",
+    marginLeft: 15,
+    marginVertical: 10,
+    fontSize: 16,
+    flex: 1,
+    fontFamily: "NunitoSans_400Regular",
+  },
+  eyeIcon: {
+    padding: 10,
+  },
+  errorText: {
+    color: "red",
+    marginTop: 5,
+    textAlign: "center",
     fontFamily: "NunitoSans_400Regular",
   },
   imagePickerButton: {
     backgroundColor: "#00A8FF",
     padding: 10,
     borderRadius: 5,
-    marginBottom: 20,
+    margin: 20,
   },
   imagePickerButtonText: {
     color: "white",
@@ -478,5 +697,46 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     textAlign: "center",
     fontFamily: "NunitoSans_700Bold",
+  },
+  alertContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  alertBox: {
+    width: 350,
+    padding: 20,
+    backgroundColor: "#F3F4F6",
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  alertMessage: {
+    fontSize: 16,
+    marginBottom: 20,
+    textAlign: "center",
+    fontWeight: "400",
+    fontFamily: "NunitoSans_400Regular",
+  },
+  alertButton: {
+    backgroundColor: "#00A8FF",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+  },
+  alertButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "bold",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    fontFamily: "NunitoSans_700Bold", 
   },
 });
