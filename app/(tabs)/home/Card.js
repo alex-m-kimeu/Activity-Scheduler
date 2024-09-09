@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, Image } from "react-native";
+import { StyleSheet, Text, View, Image, TouchableOpacity } from "react-native";
 import React, { useCallback } from "react";
 import {
   useFonts,
@@ -6,10 +6,12 @@ import {
   NunitoSans_700Bold,
 } from "@expo-google-fonts/nunito-sans";
 import * as SplashScreen from "expo-splash-screen";
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 SplashScreen.preventAutoHideAsync();
 
-const Card = ({ activity }) => {
+const Card = ({ activity, filter, handleEdit, handleDelete }) => {
   let [fontsLoaded] = useFonts({
     NunitoSans_400Regular,
     NunitoSans_700Bold,
@@ -33,6 +35,22 @@ const Card = ({ activity }) => {
         </View>
         <Text style={styles.cardDescription}>{activity.description}</Text>
         <Text style={styles.cardLocation}>{activity.location}</Text>
+        {filter === "my" && (
+          <View style={styles.buttonRow}>
+            <TouchableOpacity
+              style={[styles.button, styles.editButton]}
+              onPress={() => handleEdit(activity.id)}
+            >
+              <MaterialIcons name="edit-note" size={24} color="white" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.button, styles.deleteButton]}
+              onPress={() => handleDelete(activity.id)}
+            >
+              <MaterialCommunityIcons name="delete" size={24} color="red" />
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -87,6 +105,25 @@ const styles = StyleSheet.create({
   cardLocation: {
     color: "#00A8FF",
     fontFamily: "NunitoSans_700Bold",
-    fontSize: 14,
+    fontSize: 15,
+    textAlign: "center",
+  },
+  buttonRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 10,
+  },
+  button: {
+    padding: 2,
+    borderRadius: 5,
+  },
+  editButton: {
+    backgroundColor: "#00A8FF",
+  },
+  deleteButton: {
+    backgroundColor: "white",
+  },
+  editButtonText: {
+    color: "white",
   },
 });

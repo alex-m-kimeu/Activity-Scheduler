@@ -37,6 +37,7 @@ const Home = () => {
   const [descriptionError, setDescriptionError] = useState("");
   const [locationError, setLocationError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false); // New state for submission loader
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -44,6 +45,7 @@ const Home = () => {
     category: "Outdoor",
   });
   const [image, setImage] = useState(null);
+  const [activityId, setActivityId] = useState(null);
 
   let [fontsLoaded] = useFonts({
     NunitoSans_400Regular,
@@ -88,24 +90,64 @@ const Home = () => {
     }
   };
 
+  const handleEdit = async (activityId) => {
+    const activityToEdit = activities.find(activity => activity.id === activityId);
+    if (!activityToEdit) {
+      console.error("Activity not found");
+      return;
+    }
+
+    // Populate form data with the activity details
+    setFormData({
+      title: activityToEdit.title,
+      description: activityToEdit.description,
+      location: activityToEdit.location,
+      category: activityToEdit.category || "Outdoor",
+    });
+
+    // Open the modal for editing
+    setModalVisible(true);
+    setActivityId(activityId); 
+  };
+
+  const handleCreate = () => {
+    // Clear form data and image state
+    clearForm();
+    setImage(null);
+    setActivityId(null); // Ensure activityId is null for creating a new activity
+    setModalVisible(true);
+  };
+
+  const clearForm = () => {
+    setFormData({
+      title: "",
+      description: "",
+      location: "",
+      category: "Outdoor",
+    });
+    setTitleError("");
+    setDescriptionError("");
+    setLocationError("");
+  };
+
   const handleFormSubmit = async () => {
     const errors = {};
-
+  
     // Validate title
     if (!formData.title.trim()) {
       errors.title = "Title should not be empty";
     }
-
+  
     // Validate description word count
     if (formData.description.trim().split(/\s+/).length >= 50) {
       errors.description = "Description should not exceed 50 words";
     }
-
+  
     // Validate location
     if (!formData.location.trim()) {
       errors.location = "Location should not be empty";
     }
-
+  
     // If there are errors, set the error states and return
     if (Object.keys(errors).length > 0) {
       setTitleError(errors.title || "");
@@ -113,53 +155,68 @@ const Home = () => {
       setLocationError(errors.location || "");
       return;
     }
-
+  
     try {
+      setLoading(true);
       const token = await AsyncStorage.getItem("authToken");
       if (!token) {
         console.error("No token found");
         return;
       }
-
+  
       const formDataObj = new FormData();
-      for (const key in formData) {
-        formDataObj.append(key, formData[key]);
-      }
-
+      formDataObj.append("title", formData.title);
+      formDataObj.append("description", formData.description);
+      formDataObj.append("location", formData.location);
+      formDataObj.append("category", formData.category);
+  
       if (image) {
         const uri = image;
         const uriParts = uri.split(".");
         const fileType = uriParts[uriParts.length - 1];
-
+  
         formDataObj.append("image", {
           uri,
           name: `photo.${fileType}`,
           type: `image/${fileType}`,
         });
       }
-
-      const response = await fetch(`${API_BASE_URL}/activities`, {
-        method: "POST",
+  
+      const url = activityId ? `${API_BASE_URL}/activity/${activityId}` : `${API_BASE_URL}/activities`;
+      const method = activityId ? "PATCH" : "POST";
+  
+      const response = await fetch(url, {
+        method,
         headers: {
           Authorization: `Bearer ${token}`,
         },
         body: formDataObj,
       });
-
+  
       if (!response.ok) {
         const errorData = await response.json();
-        console.error("Failed to post activity:", errorData);
-        throw new Error("Failed to post activity");
+        console.error(`Failed to ${activityId ? "edit" : "post"} activity:`, errorData);
+        throw new Error(`Failed to ${activityId ? "edit" : "post"} activity`);
       }
-
+  
       const newActivity = await response.json();
-      setActivities((prevActivities) => [...prevActivities, newActivity]);
+      setActivities((prevActivities) =>
+        activityId
+          ? prevActivities.map((activity) =>
+              activity.id === activityId ? newActivity : activity
+            )
+          : [...prevActivities, newActivity]
+      );
       setModalVisible(false);
+      setActivityId(null);
+      clearForm();
     } catch (error) {
-      console.error("Error posting activity:", error.message);
+      console.error(`Error ${activityId ? "editing" : "posting"} activity:`, error.message);
+    } finally {
+      setLoading(false);
     }
   };
-
+  
   const pickImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -167,17 +224,38 @@ const Home = () => {
       aspect: [4, 3],
       quality: 1,
     });
+  
+    if (!result.cancelled) {
+      setImage(result.uri);
+    }
+  };
 
-    if (!result.canceled) {
-      const resizedImage = await ImageResizer.createResizedImage(
-        result.assets[0].uri,
-        300,
-        250,
-        "JPEG",
-        70
+  const handleDelete = async (activityId) => {
+    try {
+      const token = await AsyncStorage.getItem("authToken");
+      if (!token) {
+        console.error("No token found");
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/activity/${activityId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Failed to delete activity:", errorData);
+        throw new Error("Failed to delete activity");
+      }
+
+      setActivities((prevActivities) =>
+        prevActivities.filter((activity) => activity.id !== activityId)
       );
-
-      setImage(resizedImage.uri);
+    } catch (error) {
+      console.error("Error deleting activity:", error.message);
     }
   };
 
@@ -227,7 +305,7 @@ const Home = () => {
               My Activities
             </Text>
           </Pressable>
-          <Pressable onPress={() => setModalVisible(true)}>
+          <Pressable onPress={handleCreate}>
             <AntDesign name="pluscircle" size={28} color="#00A8FF" />
           </Pressable>
         </View>
@@ -241,14 +319,25 @@ const Home = () => {
             <Text style={styles.noActivitiesText}>
               No activities at the moment
             </Text>
-            <Pressable onPress={() => setModalVisible(true)}>
-              <AntDesign name="pluscircle" size={28} color="#00A8FF" style={{marginTop: 10}}/>
+            <Pressable onPress={handleCreate}>
+              <AntDesign
+                name="pluscircle"
+                size={28}
+                color="#00A8FF"
+                style={{ marginTop: 10 }}
+              />
             </Pressable>
           </View>
         ) : (
           <View contentContainerStyle={styles.activitiesContainer}>
             {activities.map((activity, index) => (
-              <Card key={index} activity={activity} />
+              <Card
+                key={index}
+                activity={activity}
+                filter={filter}
+                handleEdit={handleEdit}
+                handleDelete={handleDelete}
+              />
             ))}
           </View>
         )}
@@ -262,7 +351,7 @@ const Home = () => {
         <View style={styles.modalContainer}>
           <ScrollView contentContainerStyle={styles.scrollViewContent}>
             <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>New Activity</Text>
+              <Text style={styles.modalTitle}>Activity</Text>
               <View style={styles.inputContainer}>
                 <TextInput
                   value={formData.title}
@@ -329,8 +418,13 @@ const Home = () => {
                 <TouchableOpacity
                   style={[styles.button, styles.submitButton]}
                   onPress={handleFormSubmit}
+                  disabled={isSubmitting} // Disable button while submitting
                 >
-                  <Text style={styles.submitButtonText}>Submit</Text>
+                  {isSubmitting ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text style={styles.submitButtonText}>Submit</Text>
+                  )}
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.button, styles.cancelButton]}

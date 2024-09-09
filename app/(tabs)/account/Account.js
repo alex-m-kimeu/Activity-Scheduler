@@ -15,7 +15,7 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
-import Logo from "../../../assets/images/logo.png";
+import Avatar from "../../../assets/images/avatar.png";
 import { API_BASE_URL } from "@env";
 import { useRouter } from "expo-router";
 import AntDesign from "@expo/vector-icons/AntDesign";
@@ -35,7 +35,7 @@ const Account = () => {
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [editMode, setEditMode] = useState(false);
+  // const [editMode, setEditMode] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [profileUpdateLoading, setProfileUpdateLoading] = useState(false);
@@ -92,12 +92,15 @@ const Account = () => {
         setLoading(false);
         return;
       }
-      const response = await fetch(`https://3b01-2c0f-2a80-10c0-4210-dc36-f099-6af0-d02e.ngrok-free.app/user`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await fetch(
+        `https://3b01-2c0f-2a80-10c0-4210-dc36-f099-6af0-d02e.ngrok-free.app/user`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
       if (!response.ok) {
         const errorData = await response.json();
         console.error("Failed to fetch user profile:", errorData);
@@ -105,7 +108,7 @@ const Account = () => {
       }
       const data = await response.json();
       setUser(data);
-      setEditMode(false);
+      setModalVisible(false);
     } catch (error) {
       console.error("Error fetching user profile:", error.message);
     } finally {
@@ -115,7 +118,7 @@ const Account = () => {
 
   const renderUserImageSource = () => {
     if (!user || !user.image || user.image.trim() === "") {
-      return Logo;
+      return Avatar;
     } else {
       return { uri: user.image };
     }
@@ -132,14 +135,17 @@ const Account = () => {
         return false;
       }
 
-      const response = await fetch(`https://3b01-2c0f-2a80-10c0-4210-dc36-f099-6af0-d02e.ngrok-free.app/validate-old-password`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ old_password: editedProfile.oldPassword }),
-      });
+      const response = await fetch(
+        `https://3b01-2c0f-2a80-10c0-4210-dc36-f099-6af0-d02e.ngrok-free.app/validate-old-password`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ old_password: editedProfile.oldPassword }),
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -163,7 +169,7 @@ const Account = () => {
 
   const handleSaveProfile = async () => {
     const errors = {};
-  
+
     // Validate first name
     if (!editedProfile.firstName.trim()) {
       errors.firstName = "First name should not be empty";
@@ -171,7 +177,7 @@ const Account = () => {
     } else {
       setFirstNameError("");
     }
-  
+
     // Validate last name
     if (!editedProfile.lastName.trim()) {
       errors.lastName = "Last name should not be empty";
@@ -179,7 +185,7 @@ const Account = () => {
     } else {
       setLastNameError("");
     }
-  
+
     // Validate bio
     if (editedProfile.bio.trim().split(/\s+/).length >= 50) {
       errors.bio = "Bio should not exceed 50 words";
@@ -187,29 +193,32 @@ const Account = () => {
     } else {
       setBioError("");
     }
-  
+
     // Validate new password
     if (editedProfile.oldPassword && editedProfile.newPassword) {
       if (editedProfile.newPassword.length < 6) {
         errors.newPassword = "Password should be at least 6 characters long";
       } else if (!/[A-Z]/.test(editedProfile.newPassword)) {
-        errors.newPassword = "Password should contain at least one uppercase letter";
+        errors.newPassword =
+          "Password should contain at least one uppercase letter";
       } else if (!/[a-z]/.test(editedProfile.newPassword)) {
-        errors.newPassword = "Password should contain at least one lowercase letter";
+        errors.newPassword =
+          "Password should contain at least one lowercase letter";
       } else if (!/[0-9]/.test(editedProfile.newPassword)) {
         errors.newPassword = "Password should contain at least one digit";
       } else if (!/[!@#$%^&*(),.?\":{}|<>]/.test(editedProfile.newPassword)) {
-        errors.newPassword = "Password should contain at least one special character";
+        errors.newPassword =
+          "Password should contain at least one special character";
       } else {
         setPasswordError("");
       }
       setPasswordError(errors.newPassword);
     }
-  
+
     if (Object.keys(errors).length > 0) {
       return;
     }
-  
+
     // Validate old password before proceeding
     if (editedProfile.oldPassword) {
       const isOldPasswordValid = await validateOldPassword();
@@ -217,7 +226,7 @@ const Account = () => {
         return;
       }
     }
-  
+
     try {
       setProfileUpdateLoading(true);
       const token = await AsyncStorage.getItem("authToken");
@@ -230,17 +239,17 @@ const Account = () => {
       formData.append("first_name", editedProfile.firstName);
       formData.append("last_name", editedProfile.lastName);
       formData.append("bio", editedProfile.bio);
-  
+
       if (editedProfile.oldPassword && editedProfile.newPassword) {
         formData.append("old_password", editedProfile.oldPassword);
         formData.append("new_password", editedProfile.newPassword);
       }
-  
+
       if (editedProfile.image) {
         const uri = editedProfile.image;
         const uriParts = uri.split(".");
         const fileType = uriParts[uriParts.length - 1];
-        
+
         const response = await fetch(uri);
         const blob = await response.blob();
 
@@ -250,15 +259,15 @@ const Account = () => {
           type: `image/${fileType}`,
         });
       }
-  
-      const response = await fetch(`https://3b01-2c0f-2a80-10c0-4210-dc36-f099-6af0-d02e.ngrok-free.app/user`, {
+
+      const response = await fetch(`${API_BASE_URL}/user`, {
         method: "PATCH",
         headers: {
           Authorization: `Bearer ${token}`,
         },
         body: formData,
       });
-  
+
       if (!response.ok) {
         const errorData = await response.json();
         if (errorData.errors) {
@@ -282,7 +291,7 @@ const Account = () => {
         }
         return;
       }
-  
+
       const data = await response.json();
       setUser(data);
       setModalVisible(false);
@@ -320,19 +329,11 @@ const Account = () => {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 3],
-      quality: 0.5,
+      quality: 1,
     });
 
     if (!result.canceled) {
-      const resizedImage = await ImageResizer.createResizedImage(
-        result.assets[0].uri,
-        800,
-        600,
-        "JPEG",
-        80 
-      );
-
-      setEditedProfile({ ...editedProfile, image: resizedImage.uri });
+      setEditedProfile({ ...editedProfile, image: result.assets[0].uri });
     }
   };
 
@@ -504,11 +505,10 @@ const Account = () => {
       >
         <View style={styles.alertContainer}>
           <View style={styles.alertBox}>
-            <Text style={styles.alertMessage}>Profile updated successfully</Text>
-            <Pressable
-              style={styles.alertButton}
-              onPress={handleAlertDismiss}
-            >
+            <Text style={styles.alertMessage}>
+              Profile updated successfully
+            </Text>
+            <Pressable style={styles.alertButton} onPress={handleAlertDismiss}>
               <Text style={styles.alertButtonText}>OK</Text>
             </Pressable>
           </View>
@@ -751,6 +751,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    fontFamily: "NunitoSans_700Bold", 
+    fontFamily: "NunitoSans_700Bold",
   },
 });
