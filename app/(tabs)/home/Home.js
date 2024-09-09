@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
   Modal,
   TextInput,
-  Button,
   Image,
   TouchableOpacity,
 } from "react-native";
@@ -25,6 +24,8 @@ import {
   NunitoSans_700Bold,
 } from "@expo-google-fonts/nunito-sans";
 import * as SplashScreen from "expo-splash-screen";
+import Card from "./Card";
+import Bg from "../../../assets/images/bg.png";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -32,6 +33,9 @@ const Home = () => {
   const [activities, setActivities] = useState([]);
   const [isModalVisible, setModalVisible] = useState(false);
   const [filter, setFilter] = useState("all");
+  const [titleError, setTitleError] = useState("");
+  const [descriptionError, setDescriptionError] = useState("");
+  const [locationError, setLocationError] = useState("");
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
@@ -85,6 +89,31 @@ const Home = () => {
   };
 
   const handleFormSubmit = async () => {
+    const errors = {};
+
+    // Validate title
+    if (!formData.title.trim()) {
+      errors.title = "Title should not be empty";
+    }
+
+    // Validate description word count
+    if (formData.description.trim().split(/\s+/).length >= 50) {
+      errors.description = "Description should not exceed 50 words";
+    }
+
+    // Validate location
+    if (!formData.location.trim()) {
+      errors.location = "Location should not be empty";
+    }
+
+    // If there are errors, set the error states and return
+    if (Object.keys(errors).length > 0) {
+      setTitleError(errors.title || "");
+      setDescriptionError(errors.description || "");
+      setLocationError(errors.location || "");
+      return;
+    }
+
     try {
       const token = await AsyncStorage.getItem("authToken");
       if (!token) {
@@ -141,7 +170,7 @@ const Home = () => {
 
     if (!result.canceled) {
       const resizedImage = await ImageResizer.createResizedImage(
-        result.uri,
+        result.assets[0].uri,
         300,
         250,
         "JPEG",
@@ -206,12 +235,20 @@ const Home = () => {
           <View style={styles.loaderContainer}>
             <ActivityIndicator size="large" color="#00A8FF" />
           </View>
+        ) : activities.length === 0 ? (
+          <View style={styles.noActivitiesContainer}>
+            <Image source={Bg} style={styles.noActivitiesImage} />
+            <Text style={styles.noActivitiesText}>
+              No activities at the moment
+            </Text>
+            <Pressable onPress={() => setModalVisible(true)}>
+              <AntDesign name="pluscircle" size={28} color="#00A8FF" style={{marginTop: 10}}/>
+            </Pressable>
+          </View>
         ) : (
-          <View style={styles.activitiesContainer}>
+          <View contentContainerStyle={styles.activitiesContainer}>
             {activities.map((activity, index) => (
-              <View key={index} style={styles.activityItem}>
-                <Text style={styles.activityText}>{activity.title}</Text>
-              </View>
+              <Card key={index} activity={activity} />
             ))}
           </View>
         )}
@@ -223,76 +260,87 @@ const Home = () => {
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>New Activity</Text>
-            <View style={styles.inputContainer}>
-              <TextInput
-                value={formData.title}
-                onChangeText={(text) =>
-                  setFormData({ ...formData, title: text })
-                }
-                style={styles.textInput}
-                placeholder="Title"
-              />
-            </View>
-            <View style={styles.inputContainer}>
-              <TextInput
-                value={formData.description}
-                onChangeText={(text) =>
-                  setFormData({ ...formData, description: text })
-                }
-                style={styles.textInput}
-                placeholder="Description"
-                multiline={true}
-                numberOfLines={3}
-              />
-            </View>
-            <View style={styles.inputContainer}>
-              <TextInput
-                value={formData.location}
-                onChangeText={(text) =>
-                  setFormData({ ...formData, location: text })
-                }
-                style={styles.textInput}
-                placeholder="Location"
-              />
-            </View>
-            <View style={styles.inputContainer}>
-              <Picker
-                selectedValue={formData.category}
-                style={styles.picker}
-                onValueChange={(itemValue) =>
-                  setFormData({ ...formData, category: itemValue })
-                }
-              >
-                <Picker.Item label="Outdoor" value="Outdoor" />
-                <Picker.Item label="Indoor" value="Indoor" />
-              </Picker>
-            </View>
-            <TouchableOpacity
-              style={styles.imagePickerButton}
-              onPress={pickImage}
-            >
-              <Text style={styles.imagePickerButtonText}>Pick an image</Text>
-            </TouchableOpacity>
-            {image && (
-              <Image source={{ uri: image }} style={styles.imagePreview} />
-            )}
-            <View style={styles.buttonRow}>
+          <ScrollView contentContainerStyle={styles.scrollViewContent}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>New Activity</Text>
+              <View style={styles.inputContainer}>
+                <TextInput
+                  value={formData.title}
+                  onChangeText={(text) =>
+                    setFormData({ ...formData, title: text })
+                  }
+                  style={styles.textInput}
+                  placeholder="Title"
+                />
+              </View>
+              {titleError ? (
+                <Text style={styles.errorText}>{titleError}</Text>
+              ) : null}
+              <View style={styles.inputContainer}>
+                <TextInput
+                  value={formData.description}
+                  onChangeText={(text) =>
+                    setFormData({ ...formData, description: text })
+                  }
+                  style={styles.textInput}
+                  placeholder="Description"
+                  multiline={true}
+                  numberOfLines={3}
+                />
+              </View>
+              {descriptionError ? (
+                <Text style={styles.errorText}>{descriptionError}</Text>
+              ) : null}
+              <View style={styles.inputContainer}>
+                <TextInput
+                  value={formData.location}
+                  onChangeText={(text) =>
+                    setFormData({ ...formData, location: text })
+                  }
+                  style={styles.textInput}
+                  placeholder="Location"
+                />
+              </View>
+              {locationError ? (
+                <Text style={styles.errorText}>{locationError}</Text>
+              ) : null}
+              <View style={styles.inputContainer}>
+                <Picker
+                  selectedValue={formData.category}
+                  style={styles.picker}
+                  onValueChange={(itemValue) =>
+                    setFormData({ ...formData, category: itemValue })
+                  }
+                >
+                  <Picker.Item label="Outdoor" value="Outdoor" />
+                  <Picker.Item label="Indoor" value="Indoor" />
+                </Picker>
+              </View>
               <TouchableOpacity
-                style={[styles.button, styles.submitButton]}
-                onPress={handleFormSubmit}
+                style={styles.imagePickerButton}
+                onPress={pickImage}
               >
-                <Text style={styles.submitButtonText}>Submit</Text>
+                <Text style={styles.imagePickerButtonText}>Pick an image</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.button, styles.cancelButton]}
-                onPress={() => setModalVisible(false)}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
+              {image && (
+                <Image source={{ uri: image }} style={styles.imagePreview} />
+              )}
+              <View style={styles.buttonRow}>
+                <TouchableOpacity
+                  style={[styles.button, styles.submitButton]}
+                  onPress={handleFormSubmit}
+                >
+                  <Text style={styles.submitButtonText}>Submit</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.button, styles.cancelButton]}
+                  onPress={() => setModalVisible(false)}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
+          </ScrollView>
         </View>
       </Modal>
     </SafeAreaView>
@@ -359,8 +407,24 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
   },
-  activitiesContainer: {
+  noActivitiesContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#fff",
+  },
+  noActivitiesImage: {
+    width: 300,
+    height: 300,
+  },
+  noActivitiesText: {
+    color: "#2d2e2e",
+    fontFamily: "NunitoSans_700Bold",
+    fontSize: 20,
     marginTop: 20,
+  },
+  activitiesContainer: {
+    marginVertical: 20,
   },
   activityItem: {
     backgroundColor: "#E0E0E0",
@@ -392,6 +456,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
+    marginVertical: 20,
   },
   modalTitle: {
     fontSize: 20,
@@ -480,6 +545,11 @@ const styles = StyleSheet.create({
   cancelButtonText: {
     color: "#00A8FF",
     textAlign: "center",
+    fontFamily: "NunitoSans_400Regular",
+  },
+  errorText: {
+    color: "red",
+    marginBottom: 3,
     fontFamily: "NunitoSans_400Regular",
   },
 });
