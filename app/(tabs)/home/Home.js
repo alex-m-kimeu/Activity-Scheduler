@@ -33,6 +33,7 @@ const Home = () => {
   const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
+  const [createModalVisible, setCreateModalVisible] = useState(false);
   const [editedActivities, setEditedActivities] = useState({
     id: null,
     title: "",
@@ -44,12 +45,23 @@ const Home = () => {
     end_date: null,
   });
 
+  const [newActivity, setNewActivity] = useState({
+    title: "",
+    description: "",
+    location: "",
+    category: "Outdoors",
+    image: "",
+    start_date: null,
+    end_date: null,
+  });
+
   const [titleError, setTitleError] = useState("");
   const [descriptionError, setDescriptionError] = useState("");
   const [locationError, setLocationError] = useState("");
   const [categoryError, setCategoryError] = useState("");
   const [startDateError, setStartDateError] = useState("");
   const [endDateError, setEndDateError] = useState("");
+  const [imageError, setImageError] = useState("");
 
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
@@ -205,12 +217,13 @@ const Home = () => {
     if (!editedActivities.image) {
       errors.image = "Image is required";
     }
+    setImageError(errors.image || "");
 
     if (Object.keys(errors).length > 0) {
       return;
     }
 
-    setLoading(true); // Set loading state to true
+    setLoading(true);
 
     try {
       const token = await AsyncStorage.getItem("authToken");
@@ -286,7 +299,7 @@ const Home = () => {
     } catch (error) {
       console.error("Error updating activity:", error.message);
     } finally {
-      setLoading(false); // Set loading state to false
+      setLoading(false);
     }
   };
 
@@ -304,27 +317,266 @@ const Home = () => {
     });
   };
 
-  const handleInputChange = (field, value) => {
-    setEditedActivities((prevState) => ({
-      ...prevState,
-      [field]: value,
-    }));
+  const handleInputChange = (name, value, isEditing = false) => {
+    if (isEditing) {
+      setEditedActivities((prevActivity) => ({
+        ...prevActivity,
+        [name]: value,
+      }));
+    } else {
+      setNewActivity((prevActivity) => ({
+        ...prevActivity,
+        [name]: value,
+      }));
+    }
+
+    switch (name) {
+      case 'title':
+        setTitleError('');
+        break;
+      case 'description':
+        setDescriptionError('');
+        break;
+      case 'location':
+        setLocationError('');
+        break;
+      case 'category':
+        setCategoryError('');
+        break;
+      case 'start_date':
+        setStartDateError('');
+        break;
+      case 'end_date':
+        setEndDateError('');
+        break;
+      case 'image':
+        setImageError('');
+        break;
+      default:
+        break;
+    }
   };
 
-  const pickImage = async () => {
+  // const pickImage = async () => {
+  //   let result = await ImagePicker.launchImageLibraryAsync({
+  //     mediaTypes: ImagePicker.MediaTypeOptions.Images,
+  //     allowsEditing: true,
+  //     aspect: [4, 3],
+  //     quality: 1,
+  //   });
+
+  //   if (!result.canceled) {
+  //     setEditedActivities((prevState) => ({
+  //       ...prevState,
+  //       image: result.assets[0].uri,
+  //     }));
+  //   }
+  // };
+  const pickImage = async (isEditing = false) => {
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 3],
       quality: 1,
     });
-
+  
     if (!result.canceled) {
-      setEditedActivities((prevState) => ({
-        ...prevState,
-        image: result.assets[0].uri,
-      }));
+      if (isEditing) {
+        setEditedActivities((prevState) => ({
+          ...prevState,
+          image: result.assets[0].uri,
+        }));
+      } else {
+        setNewActivity((prevState) => ({
+          ...prevState,
+          image: result.assets[0].uri,
+        }));
+      }
+      setImageError('');
     }
+  };
+
+  const handleCreateActivity = async () => {
+    const errors = {};
+  
+    if (!newActivity.title.trim()) {
+      errors.title = "Title is required";
+    } else {
+      const wordCount = newActivity.title.trim().split(/\s+/).length;
+      if (wordCount > 4) {
+        errors.title = "Title should not exceed 4 words";
+      }
+    }
+    setTitleError(errors.title || "");
+  
+    if (!newActivity.description.trim()) {
+      errors.description = "Description is required";
+    } else {
+      const wordCount = newActivity.description.trim().split(/\s+/).length;
+      if (wordCount > 50) {
+        errors.description = "Description should not exceed 50 words";
+      }
+    }
+    setDescriptionError(errors.description || "");
+  
+    if (!newActivity.location.trim()) {
+      errors.location = "Location is required";
+    }
+    setLocationError(errors.location || "");
+  
+    if (!newActivity.category.trim()) {
+      errors.category = "Category is required";
+    } else {
+      const allowedCategories = ["Outdoors", "Indoors", "General"];
+      if (!allowedCategories.includes(newActivity.category)) {
+        errors.category = `Category should be one of ${allowedCategories.join(
+          ", "
+        )}`;
+      }
+    }
+    setCategoryError(errors.category || "");
+  
+    if (!newActivity.start_date) {
+      errors.start_date = "Start date is required";
+    } else {
+      const startDate = new Date(newActivity.start_date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (startDate < today) {
+        errors.start_date = "Start date should be equal to today or in the future";
+      }
+    }
+    setStartDateError(errors.start_date || "");
+  
+    if (!newActivity.end_date) {
+      errors.end_date = "End date is required";
+    } else {
+      const startDate = new Date(newActivity.start_date);
+      const endDate = new Date(newActivity.end_date);
+      if (endDate < startDate) {
+        errors.end_date = "End date should be equal to or after the start date";
+      }
+    }
+    setEndDateError(errors.end_date || "");
+  
+    if (!newActivity.image) {
+      errors.image = "Image is required";
+    }
+    setImageError(errors.image || "");
+  
+    if (Object.keys(errors).length > 0) {
+      return;
+    }
+  
+    setLoading(true);
+  
+    try {
+      const token = await AsyncStorage.getItem("authToken");
+      if (!token) {
+        console.error("No token found");
+        return;
+      }
+  
+      const formattedStartDate = newActivity.start_date
+        ? formatDateTime(new Date(newActivity.start_date))
+        : null;
+      const formattedEndDate = newActivity.end_date
+        ? formatDateTime(new Date(newActivity.end_date))
+        : null;
+  
+      const formData = new FormData();
+      formData.append("title", newActivity.title);
+      formData.append("description", newActivity.description);
+      formData.append("location", newActivity.location);
+      formData.append("category", newActivity.category);
+      formData.append("start_date", formattedStartDate);
+      formData.append("end_date", formattedEndDate);
+  
+      if (newActivity.image) {
+        const uri = newActivity.image;
+        const uriParts = uri.split(".");
+        const fileType = uriParts[uriParts.length - 1];
+  
+        const response = await fetch(uri);
+        const blob = await response.blob();
+  
+        formData.append("image", {
+          uri,
+          name: `photo.${fileType}`,
+          type: `image/${fileType}`,
+        });
+      }
+  
+      const response = await fetch(`${API_BASE_URL}/activities`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+  
+      const contentType = response.headers.get("content-type");
+      if (!response.ok) {
+        const errorData =
+          contentType && contentType.includes("application/json")
+            ? await response.json()
+            : await response.text();
+        console.error("Failed to create activity:", errorData);
+        throw new Error("Failed to create activity");
+      }
+  
+      if (contentType && contentType.includes("application/json")) {
+        const createdActivity = await response.json();
+        setActivities((prevActivities) => [createdActivity, ...prevActivities]);
+        setCreateModalVisible(false);
+        setNewActivity({
+          title: '',
+          description: '',
+          location: '',
+          category: 'Outdoors',
+          start_date: '',
+          end_date: '',
+          image: null,
+        });
+      } else {
+        const textData = await response.text();
+        console.error("Unexpected response format:", textData);
+        throw new Error("Unexpected response format");
+      }
+    } catch (error) {
+      console.error("Error creating activity:", error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // const handlePickImage = async () => {
+  //   let result = await ImagePicker.launchImageLibraryAsync({
+  //     mediaTypes: ImagePicker.MediaTypeOptions.Images,
+  //     allowsEditing: true,
+  //     aspect: [4, 3],
+  //     quality: 1,
+  //   });
+
+  //   if (!result.canceled) {
+  //     setNewActivity((prevState) => ({
+  //       ...prevState,
+  //       image: result.assets[0].uri,
+  //     }));
+  //   }
+  // };
+
+  const handleCancelCreate = () => {
+    setCreateModalVisible(false);
+    setNewActivity({
+      title: "",
+      description: "",
+      location: "",
+      category: "Outdoors",
+      image: "",
+      start_date: "",
+      end_date: "",
+    });
   };
 
   const handleDelete = async (activityId) => {
@@ -401,6 +653,9 @@ const Home = () => {
               My Activities
             </Text>
           </Pressable>
+          <Pressable onPress={() => setCreateModalVisible(true)}>
+            <AntDesign name="pluscircle" size={28} color="#00A8FF" />
+          </Pressable>
         </View>
         {loading ? (
           <View style={styles.loaderContainer}>
@@ -412,6 +667,14 @@ const Home = () => {
             <Text style={styles.noActivitiesText}>
               No activities at the moment
             </Text>
+            <Pressable onPress={() => setCreateModalVisible(true)}>
+              <AntDesign
+                name="pluscircle"
+                size={28}
+                color="#00A8FF"
+                style={{ marginTop: 10 }}
+              />
+            </Pressable>
           </View>
         ) : (
           <View contentContainerStyle={styles.activitiesContainer}>
@@ -449,7 +712,7 @@ const Home = () => {
                       style={styles.textInput}
                       placeholder="Title"
                       value={editedActivities.title}
-                      onChangeText={(text) => handleInputChange("title", text)}
+                      onChangeText={(text) => handleInputChange("title", text, true)}
                     />
                   </View>
                   {titleError ? (
@@ -461,7 +724,7 @@ const Home = () => {
                       placeholder="Description"
                       value={editedActivities.description}
                       onChangeText={(text) =>
-                        handleInputChange("description", text)
+                        handleInputChange("description", text, true)
                       }
                     />
                   </View>
@@ -474,7 +737,7 @@ const Home = () => {
                       placeholder="Location"
                       value={editedActivities.location}
                       onChangeText={(text) =>
-                        handleInputChange("location", text)
+                        handleInputChange("location", text, true)
                       }
                     />
                   </View>
@@ -486,7 +749,7 @@ const Home = () => {
                       selectedValue={editedActivities.category}
                       style={styles.picker}
                       onValueChange={(itemValue) =>
-                        handleInputChange("category", itemValue)
+                        handleInputChange("category", itemValue, true)
                       }
                     >
                       <Picker.Item label="Outdoors" value="Outdoors" />
@@ -522,7 +785,7 @@ const Home = () => {
                         onChange={(event, date) => {
                           setShowStartDatePicker(false);
                           if (date) {
-                            handleInputChange("start_date", date.toISOString());
+                            handleInputChange("start_date", date.toISOString(), true);
                           }
                         }}
                       />
@@ -555,7 +818,7 @@ const Home = () => {
                         onChange={(event, date) => {
                           setShowEndDatePicker(false);
                           if (date) {
-                            handleInputChange("end_date", date.toISOString());
+                            handleInputChange("end_date", date.toISOString(), true);
                           }
                         }}
                       />
@@ -566,7 +829,7 @@ const Home = () => {
                   ) : null}
                   <Pressable
                     style={styles.imagePickerButton}
-                    onPress={pickImage}
+                    onPress={() => pickImage(true)}
                   >
                     <Text style={styles.imagePickerButtonText}>
                       Pick an image
@@ -578,6 +841,9 @@ const Home = () => {
                       style={styles.imagePreview}
                     />
                   ) : null}
+                  {imageError ? (
+                    <Text style={styles.errorText}>{imageError}</Text>
+                  ) : null}
                   <View style={styles.buttonRow}>
                     <Pressable
                       style={[styles.button, styles.submitButton]}
@@ -588,6 +854,186 @@ const Home = () => {
                     <Pressable
                       style={[styles.button, styles.cancelButton]}
                       onPress={handleCancelEdit}
+                    >
+                      <Text style={styles.cancelButtonText}>Cancel</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              </ScrollView>
+            </View>
+          </>
+        )}
+      </Modal>
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={createModalVisible}
+        onRequestClose={() => setCreateModalVisible(false)}
+      >
+        {loading ? (
+          <View style={styles.loaderContainer}>
+            <ActivityIndicator size="large" color="#00A8FF" />
+          </View>
+        ) : (
+          <>
+            <View style={styles.modalContainer}>
+              <ScrollView contentContainerStyle={styles.scrollViewContent}>
+                <View style={styles.modalContent}>
+                  <Text style={styles.modalTitle}>Create Activity</Text>
+
+                  <View style={styles.inputContainer}>
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="Title"
+                      value={newActivity.title}
+                      onChangeText={(text) =>
+                        handleInputChange("title", text)
+                      }
+                    />
+                  </View>
+                  {titleError ? (
+                    <Text style={styles.errorText}>{titleError}</Text>
+                  ) : null}
+                  <View style={styles.inputContainer}>
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="Description"
+                      value={newActivity.description}
+                      onChangeText={(text) =>
+                        handleInputChange("description", text)
+                      }
+                    />
+                  </View>
+                  {descriptionError ? (
+                    <Text style={styles.errorText}>{descriptionError}</Text>
+                  ) : null}
+                  <View style={styles.inputContainer}>
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="Location"
+                      value={newActivity.location}
+                      onChangeText={(text) =>
+                        handleInputChange("location", text)
+                      }
+                    />
+                  </View>
+                  {locationError ? (
+                    <Text style={styles.errorText}>{locationError}</Text>
+                  ) : null}
+                  <View style={styles.inputContainer}>
+                    <Picker
+                      selectedValue={newActivity.category}
+                      style={styles.picker}
+                      onValueChange={(itemValue) =>
+                        handleInputChange("category", itemValue)
+                      }
+                    >
+                      <Picker.Item label="Outdoors" value="Outdoors" />
+                      <Picker.Item label="Indoors" value="Indoors" />
+                    </Picker>
+                  </View>
+                  {categoryError ? (
+                    <Text style={styles.errorText}>{categoryError}</Text>
+                  ) : null}
+                  <View style={styles.inputContainer}>
+                    <TouchableOpacity
+                      style={styles.datePickerButton}
+                      onPress={() => setShowStartDatePicker(true)}
+                    >
+                      <Text style={styles.datePickerText}>
+                        {newActivity.start_date
+                          ? formatDateTime(new Date(newActivity.start_date))
+                          : "Pick a start date"}
+                      </Text>
+                      <AntDesign name="calendar" size={20} color="#00A8FF" />
+                    </TouchableOpacity>
+                    {showStartDatePicker && (
+                      <DateTimePicker
+                        value={
+                          newActivity.start_date
+                            ? new Date(newActivity.start_date)
+                            : new Date()
+                        }
+                        mode="date"
+                        display="default"
+                        onChange={(event, date) => {
+                          setShowStartDatePicker(false);
+                          if (date) {
+                            handleInputChange(
+                              "start_date",
+                              date.toISOString()
+                            );
+                          }
+                        }}
+                      />
+                    )}
+                  </View>
+                  {startDateError ? (
+                    <Text style={styles.errorText}>{startDateError}</Text>
+                  ) : null}
+                  <View style={styles.inputContainer}>
+                    <TouchableOpacity
+                      style={styles.datePickerButton}
+                      onPress={() => setShowEndDatePicker(true)}
+                    >
+                      <Text style={styles.datePickerText}>
+                        {newActivity.end_date
+                          ? formatDateTime(new Date(newActivity.end_date))
+                          : "Pick an end date"}
+                      </Text>
+                      <AntDesign name="calendar" size={20} color="#00A8FF" />
+                    </TouchableOpacity>
+                    {showEndDatePicker && (
+                      <DateTimePicker
+                        value={
+                          newActivity.end_date
+                            ? new Date(newActivity.end_date)
+                            : new Date()
+                        }
+                        mode="date"
+                        display="default"
+                        onChange={(event, date) => {
+                          setShowEndDatePicker(false);
+                          if (date) {
+                            handleInputChange(
+                              "end_date",
+                              date.toISOString()
+                            );
+                          }
+                        }}
+                      />
+                    )}
+                  </View>
+                  {endDateError ? (
+                    <Text style={styles.errorText}>{endDateError}</Text>
+                  ) : null}
+                  <Pressable
+                    style={styles.imagePickerButton}
+                    onPress={() => pickImage(false)}
+                  >
+                    <Text style={styles.imagePickerButtonText}>
+                      Pick an image
+                    </Text>
+                  </Pressable>
+                  {newActivity.image ? (
+                    <Image
+                      source={{ uri: newActivity.image }}
+                      style={styles.imagePreview}
+                    />
+                  ) : null}
+                  {imageError ? (
+                    <Text style={styles.errorText}>{imageError}</Text>
+                  ) : null}
+                  <View style={styles.buttonRow}>
+                    <Pressable
+                      style={[styles.button, styles.submitButton]}
+                      onPress={handleCreateActivity}
+                    >
+                      <Text style={styles.submitButtonText}>Create</Text>
+                    </Pressable>
+                    <Pressable
+                      style={[styles.button, styles.cancelButton]}
+                      onPress={handleCancelCreate}
                     >
                       <Text style={styles.cancelButtonText}>Cancel</Text>
                     </Pressable>
