@@ -8,7 +8,6 @@ import {
   Pressable,
   ScrollView,
   Image,
-  Alert,
   Modal,
   TouchableOpacity,
   ActivityIndicator,
@@ -21,7 +20,6 @@ import { useRouter } from "expo-router";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
-import ImageResizer from "react-native-image-resizer";
 import {
   useFonts,
   NunitoSans_400Regular,
@@ -35,7 +33,6 @@ const Account = () => {
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  // const [editMode, setEditMode] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [profileUpdateLoading, setProfileUpdateLoading] = useState(false);
@@ -170,7 +167,6 @@ const Account = () => {
   const handleSaveProfile = async () => {
     const errors = {};
 
-    // Validate first name
     if (!editedProfile.firstName.trim()) {
       errors.firstName = "First name should not be empty";
       setFirstNameError(errors.firstName);
@@ -178,7 +174,6 @@ const Account = () => {
       setFirstNameError("");
     }
 
-    // Validate last name
     if (!editedProfile.lastName.trim()) {
       errors.lastName = "Last name should not be empty";
       setLastNameError(errors.lastName);
@@ -186,7 +181,6 @@ const Account = () => {
       setLastNameError("");
     }
 
-    // Validate bio
     if (editedProfile.bio.trim().split(/\s+/).length >= 50) {
       errors.bio = "Bio should not exceed 50 words";
       setBioError(errors.bio);
@@ -194,7 +188,6 @@ const Account = () => {
       setBioError("");
     }
 
-    // Validate new password
     if (editedProfile.oldPassword && editedProfile.newPassword) {
       if (editedProfile.newPassword.length < 6) {
         errors.newPassword = "Password should be at least 6 characters long";
@@ -219,7 +212,6 @@ const Account = () => {
       return;
     }
 
-    // Validate old password before proceeding
     if (editedProfile.oldPassword) {
       const isOldPasswordValid = await validateOldPassword();
       if (!isOldPasswordValid) {

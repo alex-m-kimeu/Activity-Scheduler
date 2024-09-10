@@ -7,14 +7,14 @@ import {
   Pressable,
   ScrollView,
   ActivityIndicator,
+  Image,
   Modal,
   TextInput,
-  Image,
   TouchableOpacity,
 } from "react-native";
-import { AntDesign } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_BASE_URL } from "@env";
+import * as SplashScreen from "expo-splash-screen";
 import * as ImagePicker from "expo-image-picker";
 import { Picker } from "@react-native-picker/picker";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -23,33 +23,34 @@ import {
   NunitoSans_400Regular,
   NunitoSans_700Bold,
 } from "@expo-google-fonts/nunito-sans";
-import * as SplashScreen from "expo-splash-screen";
 import Card from "./Card";
 import Bg from "../../../assets/images/bg.png";
-
+import AntDesign from "@expo/vector-icons/AntDesign";
 SplashScreen.preventAutoHideAsync();
 
 const Home = () => {
   const [activities, setActivities] = useState([]);
-  const [isModalVisible, setModalVisible] = useState(false);
   const [filter, setFilter] = useState("all");
-  const [titleError, setTitleError] = useState("");
-  const [descriptionError, setDescriptionError] = useState("");
-  const [locationError, setLocationError] = useState("");
-  const [startDateError, setStartDateError] = useState("");
-  const [endDateError, setEndDateError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState({
+  const [modalVisible, setModalVisible] = useState(false);
+  const [editedActivities, setEditedActivities] = useState({
+    id: null,
     title: "",
     description: "",
     location: "",
-    category: "Outdoors",
+    category: "",
+    image: "",
     start_date: null,
     end_date: null,
   });
-  const [image, setImage] = useState(null);
-  const [activityId, setActivityId] = useState(null);
+
+  const [titleError, setTitleError] = useState("");
+  const [descriptionError, setDescriptionError] = useState("");
+  const [locationError, setLocationError] = useState("");
+  const [categoryError, setCategoryError] = useState("");
+  const [startDateError, setStartDateError] = useState("");
+  const [endDateError, setEndDateError] = useState("");
+
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
 
@@ -64,14 +65,22 @@ const Home = () => {
     }
   }, [fontsLoaded]);
 
-  const fetchActivities = async (endpoint) => {
+  useEffect(() => {
+    fetchActivities("");
+  }, []);
+
+  useEffect(() => {
+    const endpoint = filter === "all" ? "/all" : "";
+    fetchActivities(endpoint);
+  }, [filter]);
+
+  const fetchActivities = async (endpoint = "") => {
+    setLoading(true);
     try {
-      setLoading(true);
       const token = await AsyncStorage.getItem("authToken");
       if (!token) {
         console.error("No token found");
-        setLoading(false);
-        return;
+        throw new Error("No token found");
       }
 
       const response = await fetch(`${API_BASE_URL}/activities${endpoint}`, {
@@ -81,14 +90,24 @@ const Home = () => {
         },
       });
 
+      const contentType = response.headers.get("content-type");
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData =
+          contentType && contentType.includes("application/json")
+            ? await response.json()
+            : await response.text();
         console.error("Failed to fetch activities:", errorData);
         throw new Error("Failed to fetch activities");
       }
 
-      const data = await response.json();
-      setActivities(data);
+      if (contentType && contentType.includes("application/json")) {
+        const data = await response.json();
+        setActivities(data);
+      } else {
+        const textData = await response.text();
+        console.error("Unexpected response format:", textData);
+        throw new Error("Unexpected response format");
+      }
     } catch (error) {
       console.error("Error fetching activities:", error.message);
     } finally {
@@ -96,165 +115,200 @@ const Home = () => {
     }
   };
 
-  const handleEdit = async (activityId) => {
-    const activityToEdit = activities.find(
-      (activity) => activity.id === activityId
-    );
-    if (!activityToEdit) {
-      console.error("Activity not found");
-      return;
-    }
-
-    setFormData({
-      title: activityToEdit.title,
-      description: activityToEdit.description,
-      location: activityToEdit.location,
-      category: activityToEdit.category || "Outdoors",
-      start_date: new Date(activityToEdit.start_date),
-      end_date: new Date(activityToEdit.end_date),
+  const handleEditActivity = (activity) => {
+    setEditedActivities({
+      id: activity.id,
+      title: activity.title,
+      description: activity.description,
+      location: activity.location,
+      category: activity.category,
+      image: activity.image,
+      start_date: activity.start_date ? new Date(activity.start_date) : null,
+      end_date: activity.end_date ? new Date(activity.end_date) : null,
     });
-
     setModalVisible(true);
-    setActivityId(activityId);
-  };
-
-  const handleCreate = () => {
-    clearForm();
-    setImage(null);
-    setActivityId(null);
-    setModalVisible(true);
-  };
-
-  const clearForm = () => {
-    setFormData({
-      title: "",
-      description: "",
-      location: "",
-      category: "Outdoors",
-      start_date: null,
-      end_date: null,
-    });
-    setTitleError("");
-    setDescriptionError("");
-    setLocationError("");
-    setStartDateError("");
-    setEndDateError("");
   };
 
   const formatDateTime = (date) => {
     const pad = (num) => (num < 10 ? `0${num}` : num);
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
+      date.getDate()
+    )} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(
+      date.getSeconds()
+    )}`;
   };
 
-  const handleFormSubmit = async () => {
+  const handleSaveActivity = async () => {
     const errors = {};
 
-    if (!formData.title.trim()) {
-      errors.title = "Title should not be empty";
+    if (!editedActivities.title.trim()) {
+      errors.title = "Title is required";
+    } else {
+      const wordCount = editedActivities.title.trim().split(/\s+/).length;
+      if (wordCount > 4) {
+        errors.title = "Title should not exceed 4 words";
+      }
     }
+    setTitleError(errors.title || "");
 
-    if (formData.description.trim().split(/\s+/).length >= 50) {
-      errors.description = "Description should not exceed 50 words";
+    if (!editedActivities.description.trim()) {
+      errors.description = "Description is required";
+    } else {
+      const wordCount = editedActivities.description.trim().split(/\s+/).length;
+      if (wordCount > 50) {
+        errors.description = "Description should not exceed 50 words";
+      }
     }
+    setDescriptionError(errors.description || "");
 
-    if (!formData.location.trim()) {
-      errors.location = "Location should not be empty";
+    if (!editedActivities.location.trim()) {
+      errors.location = "Location is required";
     }
+    setLocationError(errors.location || "");
 
-    if (!formData.start_date) {
-      errors.start_date = "Start date should not be empty";
+    if (!editedActivities.category.trim()) {
+      errors.category = "Category is required";
+    } else {
+      const allowedCategories = ["Outdoors", "Indoors", "General"];
+      if (!allowedCategories.includes(editedActivities.category)) {
+        errors.category = `Category should be one of ${allowedCategories.join(
+          ", "
+        )}`;
+      }
     }
+    setCategoryError(errors.category || "");
 
-    if (!formData.end_date) {
-      errors.end_date = "End date should not be empty";
+    if (!editedActivities.start_date) {
+      errors.start_date = "Start date is required";
+    } else {
+      const startDate = new Date(editedActivities.start_date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (startDate < today) {
+        errors.start_date =
+          "Start date should be equal to today or in the future";
+      }
     }
+    setStartDateError(errors.start_date || "");
 
-    if (new Date(formData.start_date) < new Date()) {
-      errors.start_date = "Start date should be today or in the future";
+    if (!editedActivities.end_date) {
+      errors.end_date = "End date is required";
+    } else {
+      const startDate = new Date(editedActivities.start_date);
+      const endDate = new Date(editedActivities.end_date);
+      if (endDate < startDate) {
+        errors.end_date = "End date should be equal to or after the start date";
+      }
     }
+    setEndDateError(errors.end_date || "");
 
-    if (new Date(formData.end_date) < new Date(formData.start_date)) {
-      errors.end_date = "End date should be after the start date";
+    if (!editedActivities.image) {
+      errors.image = "Image is required";
     }
 
     if (Object.keys(errors).length > 0) {
-      setTitleError(errors.title || "");
-      setDescriptionError(errors.description || "");
-      setLocationError(errors.location || "");
-      setStartDateError(errors.start_date || "");
-      setEndDateError(errors.end_date || "");
       return;
     }
 
+    setLoading(true); // Set loading state to true
+
     try {
-      setLoading(true);
       const token = await AsyncStorage.getItem("authToken");
       if (!token) {
         console.error("No token found");
         return;
       }
 
-      const formDataObj = new FormData();
-      formDataObj.append("title", formData.title);
-      formDataObj.append("description", formData.description);
-      formDataObj.append("location", formData.location);
-      formDataObj.append("category", formData.category);
-      formDataObj.append("start_date", formatDateTime(formData.start_date));
-      formDataObj.append("end_date", formatDateTime(formData.end_date));
+      const formattedStartDate = editedActivities.start_date
+        ? formatDateTime(new Date(editedActivities.start_date))
+        : null;
+      const formattedEndDate = editedActivities.end_date
+        ? formatDateTime(new Date(editedActivities.end_date))
+        : null;
 
-      if (image) {
-        const uri = image;
+      const formData = new FormData();
+      formData.append("title", editedActivities.title);
+      formData.append("description", editedActivities.description);
+      formData.append("location", editedActivities.location);
+      formData.append("category", editedActivities.category);
+      formData.append("start_date", formattedStartDate);
+      formData.append("end_date", formattedEndDate);
+
+      if (editedActivities.image) {
+        const uri = editedActivities.image;
         const uriParts = uri.split(".");
         const fileType = uriParts[uriParts.length - 1];
 
-        formDataObj.append("image", {
+        const response = await fetch(uri);
+        const blob = await response.blob();
+
+        formData.append("image", {
           uri,
           name: `photo.${fileType}`,
           type: `image/${fileType}`,
         });
       }
 
-      const url = activityId
-        ? `${API_BASE_URL}/activity/${activityId}`
-        : `${API_BASE_URL}/activities`;
-      const method = activityId ? "PATCH" : "POST";
+      const response = await fetch(
+        `${API_BASE_URL}/activity/${editedActivities.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        }
+      );
 
-      const response = await fetch(url, {
-        method,
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formDataObj,
-      });
-
+      const contentType = response.headers.get("content-type");
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error(
-          `Failed to ${activityId ? "edit" : "post"} activity:`,
-          errorData
-        );
-        throw new Error(`Failed to ${activityId ? "edit" : "post"} activity`);
+        const errorData =
+          contentType && contentType.includes("application/json")
+            ? await response.json()
+            : await response.text();
+        console.error("Failed to update activity:", errorData);
+        throw new Error("Failed to update activity");
       }
 
-      const newActivity = await response.json();
-      setActivities((prevActivities) =>
-        activityId
-          ? prevActivities.map((activity) =>
-              activity.id === activityId ? newActivity : activity
-            )
-          : [...prevActivities, newActivity]
-      );
-      setModalVisible(false);
-      setActivityId(null);
-      clearForm();
+      if (contentType && contentType.includes("application/json")) {
+        const updatedActivity = await response.json();
+        setActivities((prevActivities) =>
+          prevActivities.map((activity) =>
+            activity.id === updatedActivity.id ? updatedActivity : activity
+          )
+        );
+        setModalVisible(false);
+      } else {
+        const textData = await response.text();
+        console.error("Unexpected response format:", textData);
+        throw new Error("Unexpected response format");
+      }
     } catch (error) {
-      console.error(
-        `Error ${activityId ? "editing" : "posting"} activity:`,
-        error.message
-      );
+      console.error("Error updating activity:", error.message);
     } finally {
-      setLoading(false);
+      setLoading(false); // Set loading state to false
     }
+  };
+
+  const handleCancelEdit = () => {
+    setModalVisible(false);
+    setEditedActivities({
+      id: "",
+      title: "",
+      description: "",
+      location: "",
+      category: "",
+      image: "",
+      start_date: "",
+      end_date: "",
+    });
+  };
+
+  const handleInputChange = (field, value) => {
+    setEditedActivities((prevState) => ({
+      ...prevState,
+      [field]: value,
+    }));
   };
 
   const pickImage = async () => {
@@ -265,12 +319,16 @@ const Home = () => {
       quality: 1,
     });
 
-    if (!result.cancelled) {
-      setImage(result.uri);
+    if (!result.canceled) {
+      setEditedActivities((prevState) => ({
+        ...prevState,
+        image: result.assets[0].uri,
+      }));
     }
   };
 
   const handleDelete = async (activityId) => {
+    setLoading(true);
     try {
       const token = await AsyncStorage.getItem("authToken");
       if (!token) {
@@ -296,13 +354,10 @@ const Home = () => {
       );
     } catch (error) {
       console.error("Error deleting activity:", error.message);
+    } finally {
+      setLoading(false);
     }
   };
-
-  useEffect(() => {
-    const endpoint = filter === "all" ? "/all" : "";
-    fetchActivities(endpoint);
-  }, [filter]);
 
   if (!fontsLoaded) {
     return null;
@@ -346,9 +401,6 @@ const Home = () => {
               My Activities
             </Text>
           </Pressable>
-          <Pressable onPress={handleCreate}>
-            <AntDesign name="pluscircle" size={28} color="#00A8FF" />
-          </Pressable>
         </View>
         {loading ? (
           <View style={styles.loaderContainer}>
@@ -360,14 +412,6 @@ const Home = () => {
             <Text style={styles.noActivitiesText}>
               No activities at the moment
             </Text>
-            <Pressable onPress={handleCreate}>
-              <AntDesign
-                name="pluscircle"
-                size={28}
-                color="#00A8FF"
-                style={{ marginTop: 10 }}
-              />
-            </Pressable>
           </View>
         ) : (
           <View contentContainerStyle={styles.activitiesContainer}>
@@ -376,7 +420,7 @@ const Home = () => {
                 key={index}
                 activity={activity}
                 filter={filter}
-                handleEdit={handleEdit}
+                handleEditActivity={handleEditActivity}
                 handleDelete={handleDelete}
               />
             ))}
@@ -386,155 +430,173 @@ const Home = () => {
       <Modal
         animationType="slide"
         transparent={true}
-        visible={isModalVisible}
+        visible={modalVisible}
         onRequestClose={() => setModalVisible(false)}
       >
-        <View style={styles.modalContainer}>
-          <ScrollView contentContainerStyle={styles.scrollViewContent}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Activity</Text>
-              <View style={styles.inputContainer}>
-                <TextInput
-                  value={formData.title}
-                  onChangeText={(text) =>
-                    setFormData({ ...formData, title: text })
-                  }
-                  style={styles.textInput}
-                  placeholder="Title"
-                />
-              </View>
-              {titleError ? (
-                <Text style={styles.errorText}>{titleError}</Text>
-              ) : null}
-              <View style={styles.inputContainer}>
-                <TextInput
-                  value={formData.description}
-                  onChangeText={(text) =>
-                    setFormData({ ...formData, description: text })
-                  }
-                  style={styles.textInput}
-                  placeholder="Description"
-                  multiline={true}
-                  numberOfLines={3}
-                />
-              </View>
-              {descriptionError ? (
-                <Text style={styles.errorText}>{descriptionError}</Text>
-              ) : null}
-              <View style={styles.inputContainer}>
-                <TextInput
-                  value={formData.location}
-                  onChangeText={(text) =>
-                    setFormData({ ...formData, location: text })
-                  }
-                  style={styles.textInput}
-                  placeholder="Location"
-                />
-              </View>
-              {locationError ? (
-                <Text style={styles.errorText}>{locationError}</Text>
-              ) : null}
-              <View style={styles.inputContainer}>
-                <Picker
-                  selectedValue={formData.category}
-                  style={styles.picker}
-                  onValueChange={(itemValue) =>
-                    setFormData({ ...formData, category: itemValue })
-                  }
-                >
-                  <Picker.Item label="Outdoors" value="Outdoors" />
-                  <Picker.Item label="Indoors" value="Indoors" />
-                </Picker>
-              </View>
-              <View style={styles.inputContainer}>
-                <TouchableOpacity
-                  style={styles.datePickerButton}
-                  onPress={() => setShowStartDatePicker(true)}
-                >
-                  <Text style={styles.datePickerText}>
-                    {formData.start_date
-                      ? formatDateTime(formData.start_date)
-                      : "Pick a start date"}
-                  </Text>
-                  <AntDesign name="calendar" size={20} color="#00A8FF" />
-                </TouchableOpacity>
-                {showStartDatePicker && (
-                  <DateTimePicker
-                    value={formData.start_date || new Date()}
-                    mode="date"
-                    display="default"
-                    onChange={(event, date) => {
-                      setShowStartDatePicker(false);
-                      if (date) {
-                        setFormData({ ...formData, start_date: date });
+        {loading ? (
+          <View style={styles.loaderContainer}>
+            <ActivityIndicator size="large" color="#00A8FF" />
+          </View>
+        ) : (
+          <>
+            <View style={styles.modalContainer}>
+              <ScrollView contentContainerStyle={styles.scrollViewContent}>
+                <View style={styles.modalContent}>
+                  <Text style={styles.modalTitle}>Edit Activity</Text>
+
+                  <View style={styles.inputContainer}>
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="Title"
+                      value={editedActivities.title}
+                      onChangeText={(text) => handleInputChange("title", text)}
+                    />
+                  </View>
+                  {titleError ? (
+                    <Text style={styles.errorText}>{titleError}</Text>
+                  ) : null}
+                  <View style={styles.inputContainer}>
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="Description"
+                      value={editedActivities.description}
+                      onChangeText={(text) =>
+                        handleInputChange("description", text)
                       }
-                    }}
-                  />
-                )}
-              </View>
-              {startDateError ? (
-                <Text style={styles.errorText}>{startDateError}</Text>
-              ) : null}
-              <View style={styles.inputContainer}>
-                <TouchableOpacity
-                  style={styles.datePickerButton}
-                  onPress={() => setShowEndDatePicker(true)}
-                >
-                  <Text style={styles.datePickerText}>
-                    {formData.end_date
-                      ? formatDateTime(formData.end_date)
-                      : "Pick an end date"}
-                  </Text>
-                  <AntDesign name="calendar" size={20} color="#00A8FF" />
-                </TouchableOpacity>
-                {showEndDatePicker && (
-                  <DateTimePicker
-                    value={formData.end_date || new Date()}
-                    mode="date"
-                    display="default"
-                    onChange={(event, date) => {
-                      setShowEndDatePicker(false);
-                      if (date) {
-                        setFormData({ ...formData, end_date: date });
+                    />
+                  </View>
+                  {descriptionError ? (
+                    <Text style={styles.errorText}>{descriptionError}</Text>
+                  ) : null}
+                  <View style={styles.inputContainer}>
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="Location"
+                      value={editedActivities.location}
+                      onChangeText={(text) =>
+                        handleInputChange("location", text)
                       }
-                    }}
-                  />
-                )}
-              </View>
-              {endDateError ? (
-                <Text style={styles.errorText}>{endDateError}</Text>
-              ) : null}
-              <TouchableOpacity
-                style={styles.imagePickerButton}
-                onPress={pickImage}
-              >
-                <Text style={styles.imagePickerButtonText}>Pick an image</Text>
-              </TouchableOpacity>
-              {image && (
-                <Image source={{ uri: image }} style={styles.imagePreview} />
-              )}
-              <View style={styles.buttonRow}>
-                <TouchableOpacity
-                  style={[styles.button, styles.submitButton]}
-                  onPress={handleFormSubmit}
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <ActivityIndicator size="small" color="#fff" />
-                  ) : (
-                    <Text style={styles.submitButtonText}>Submit</Text>
-                  )}
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.button, styles.cancelButton]}
-                  onPress={() => setModalVisible(false)}
-                >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-              </View>
+                    />
+                  </View>
+                  {locationError ? (
+                    <Text style={styles.errorText}>{locationError}</Text>
+                  ) : null}
+                  <View style={styles.inputContainer}>
+                    <Picker
+                      selectedValue={editedActivities.category}
+                      style={styles.picker}
+                      onValueChange={(itemValue) =>
+                        handleInputChange("category", itemValue)
+                      }
+                    >
+                      <Picker.Item label="Outdoors" value="Outdoors" />
+                      <Picker.Item label="Indoors" value="Indoors" />
+                    </Picker>
+                  </View>
+                  {categoryError ? (
+                    <Text style={styles.errorText}>{categoryError}</Text>
+                  ) : null}
+                  <View style={styles.inputContainer}>
+                    <TouchableOpacity
+                      style={styles.datePickerButton}
+                      onPress={() => setShowStartDatePicker(true)}
+                    >
+                      <Text style={styles.datePickerText}>
+                        {editedActivities.start_date
+                          ? formatDateTime(
+                              new Date(editedActivities.start_date)
+                            )
+                          : "Pick a start date"}
+                      </Text>
+                      <AntDesign name="calendar" size={20} color="#00A8FF" />
+                    </TouchableOpacity>
+                    {showStartDatePicker && (
+                      <DateTimePicker
+                        value={
+                          editedActivities.start_date
+                            ? new Date(editedActivities.start_date)
+                            : new Date()
+                        }
+                        mode="date"
+                        display="default"
+                        onChange={(event, date) => {
+                          setShowStartDatePicker(false);
+                          if (date) {
+                            handleInputChange("start_date", date.toISOString());
+                          }
+                        }}
+                      />
+                    )}
+                  </View>
+                  {startDateError ? (
+                    <Text style={styles.errorText}>{startDateError}</Text>
+                  ) : null}
+                  <View style={styles.inputContainer}>
+                    <TouchableOpacity
+                      style={styles.datePickerButton}
+                      onPress={() => setShowEndDatePicker(true)}
+                    >
+                      <Text style={styles.datePickerText}>
+                        {editedActivities.end_date
+                          ? formatDateTime(new Date(editedActivities.end_date))
+                          : "Pick an end date"}
+                      </Text>
+                      <AntDesign name="calendar" size={20} color="#00A8FF" />
+                    </TouchableOpacity>
+                    {showEndDatePicker && (
+                      <DateTimePicker
+                        value={
+                          editedActivities.end_date
+                            ? new Date(editedActivities.end_date)
+                            : new Date()
+                        }
+                        mode="date"
+                        display="default"
+                        onChange={(event, date) => {
+                          setShowEndDatePicker(false);
+                          if (date) {
+                            handleInputChange("end_date", date.toISOString());
+                          }
+                        }}
+                      />
+                    )}
+                  </View>
+                  {endDateError ? (
+                    <Text style={styles.errorText}>{endDateError}</Text>
+                  ) : null}
+                  <Pressable
+                    style={styles.imagePickerButton}
+                    onPress={pickImage}
+                  >
+                    <Text style={styles.imagePickerButtonText}>
+                      Pick an image
+                    </Text>
+                  </Pressable>
+                  {editedActivities.image ? (
+                    <Image
+                      source={{ uri: editedActivities.image }}
+                      style={styles.imagePreview}
+                    />
+                  ) : null}
+                  <View style={styles.buttonRow}>
+                    <Pressable
+                      style={[styles.button, styles.submitButton]}
+                      onPress={handleSaveActivity}
+                    >
+                      <Text style={styles.submitButtonText}>Save</Text>
+                    </Pressable>
+                    <Pressable
+                      style={[styles.button, styles.cancelButton]}
+                      onPress={handleCancelEdit}
+                    >
+                      <Text style={styles.cancelButtonText}>Cancel</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              </ScrollView>
             </View>
-          </ScrollView>
-        </View>
+          </>
+        )}
       </Modal>
     </SafeAreaView>
   );

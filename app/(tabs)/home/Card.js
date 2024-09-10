@@ -11,7 +11,7 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 SplashScreen.preventAutoHideAsync();
 
-const Card = ({ activity, filter, handleEdit, handleDelete }) => {
+const Card = ({ activity, filter, handleEditActivity, handleDelete }) => {
   let [fontsLoaded] = useFonts({
     NunitoSans_400Regular,
     NunitoSans_700Bold,
@@ -39,7 +39,7 @@ const Card = ({ activity, filter, handleEdit, handleDelete }) => {
           <View style={styles.buttonRow}>
             <TouchableOpacity
               style={[styles.button, styles.editButton]}
-              onPress={() => handleEdit(activity.id)}
+              onPress={() => handleEditActivity(activity)}
             >
               <MaterialIcons name="edit-note" size={24} color="white" />
             </TouchableOpacity>
