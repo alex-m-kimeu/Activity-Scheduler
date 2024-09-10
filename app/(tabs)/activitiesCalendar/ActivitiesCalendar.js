@@ -4,10 +4,11 @@ import {
   Text,
   View,
   FlatList,
-  TouchableOpacity,
   ActivityIndicator,
   ImageBackground,
   Image,
+  ScrollView,
+  SafeAreaView,
 } from "react-native";
 import { Calendar } from "react-native-calendars";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -90,71 +91,80 @@ const ActivitiesCalendar = () => {
   }
 
   return (
-    <View style={styles.container} onLayout={onLayoutRootView}>
-      <Text style={styles.title}>Calendar</Text>
-      <Calendar
-        onDayPress={handleDateChange}
-        markedDates={{
-          [selectedDate]: {
-            selected: true,
-            marked: false,
-            selectedColor: "#00A8FF",
-          },
-        }}
-        style={styles.calendar}
-      />
-      {activities.length === 0 ? (
-        <View style={styles.noActivitiesContainer}>
-          <ImageBackground source={Bg} style={styles.background} />
-          <Text style={styles.noActivitiesText}>No available activities</Text>
-        </View>
-      ) : (
-        <>
-         <Text style={styles.availableActivitiesText}>Available Activities</Text>
-        <FlatList
-          data={activities}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => (
-            <View style={styles.card}>
-              <Image
-                source={{ uri: item.image }}
-                style={styles.activityImage}
-              />
-              <View style={styles.activityContent}>
-                <View style={styles.activityHeader}>
-                  <Text style={styles.activityTitle}>{item.title}</Text>
-                  <Text style={styles.activityCategory}>{item.category}</Text>
-                </View>
-                <Text style={styles.activityDescription}>
-                  {item.description}
-                </Text>
-                <Text style={styles.activityLocation}>{item.location}</Text>
-                <Text
-                  style={styles.activityDate}
-                >{`Start: ${item.start_date}`}</Text>
-                <Text
-                  style={styles.activityDate}
-                >{`End: ${item.end_date}`}</Text>
-              </View>
-            </View>
-          )}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.carouselContainer}
+    <SafeAreaView style={styles.safeArea} onLayout={onLayoutRootView}>
+      <ScrollView style={styles.scrollViewContent}>
+        <Text style={styles.title}>Calendar</Text>
+        <Calendar
+          onDayPress={handleDateChange}
+          markedDates={{
+            [selectedDate]: {
+              selected: true,
+              marked: false,
+              selectedColor: "#00A8FF",
+            },
+          }}
+          style={styles.calendar}
         />
-        </>
-      )}
-    </View>
+        {activities.length === 0 ? (
+          <View style={styles.noActivitiesContainer}>
+            <ImageBackground source={Bg} style={styles.background} />
+            <Text style={styles.noActivitiesText}>No available activities</Text>
+          </View>
+        ) : (
+          <>
+            <Text style={styles.availableActivitiesText}>
+              Available Activities
+            </Text>
+            <FlatList
+              data={activities}
+              keyExtractor={(item) => item.id.toString()}
+              renderItem={({ item }) => (
+                <View style={styles.card}>
+                  <Image
+                    source={{ uri: item.image }}
+                    style={styles.activityImage}
+                  />
+                  <View style={styles.activityContent}>
+                    <View style={styles.activityHeader}>
+                      <Text style={styles.activityTitle}>{item.title}</Text>
+                      <Text style={styles.activityCategory}>
+                        {item.category}
+                      </Text>
+                    </View>
+                    <Text style={styles.activityDescription}>
+                      {item.description}
+                    </Text>
+                    <Text style={styles.activityLocation}>{item.location}</Text>
+                    <Text
+                      style={styles.activityDate}
+                    >{`Start: ${item.start_date}`}</Text>
+                    <Text
+                      style={styles.activityDate}
+                    >{`End: ${item.end_date}`}</Text>
+                  </View>
+                </View>
+              )}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.carouselContainer}
+            />
+          </>
+        )}
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
 export default ActivitiesCalendar;
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
+    backgroundColor: "white",
+  },
+  scrollViewContent: {
+    flexGrow: 1,
     padding: 10,
-    backgroundColor: "#fff",
   },
   title: {
     fontSize: 15,
@@ -173,7 +183,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     color: "#00A8FF",
     textAlign: "center",
-  },  
+  },
   card: {
     backgroundColor: "#fff",
     borderRadius: 10,
@@ -183,12 +193,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 5,
     elevation: 3,
-    width: 250,
-    height: 350,
+    width: 340,
+    height: 400,
+    marginBottom: 20,
   },
   activityImage: {
     width: "100%",
-    height: 150,
+    height: 200,
     marginBottom: 10,
     borderTopLeftRadius: 10,
     borderTopRightRadius: 10,

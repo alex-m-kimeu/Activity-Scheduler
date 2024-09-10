@@ -361,7 +361,7 @@ const Account = () => {
   return (
     <SafeAreaView style={styles.safeArea} onLayout={onLayoutRootView}>
       <ScrollView contentContainerStyle={styles.scrollViewContent}>
-      <Text style={styles.title}>My Profile</Text>
+        <Text style={styles.title}>My Profile</Text>
         <View style={styles.buttonContainer}>
           <Pressable onPress={handleBackToHome} style={styles.backButton}>
             <AntDesign name="arrowleft" size={22} color="#2d2e2e" />
@@ -392,112 +392,123 @@ const Account = () => {
         visible={modalVisible}
         onRequestClose={() => setModalVisible(false)}
       >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Edit Profile</Text>
-            <Image
-              source={
-                editedProfile.image
-                  ? { uri: editedProfile.image }
-                  : renderUserImageSource()
-              }
-              style={styles.profileImage}
-            />
-            <View style={styles.inputContainer}>
-              <TextInput
-                value={editedProfile.firstName}
-                onChangeText={(text) => handleInputChange("firstName", text)}
-                style={styles.textInput}
-                placeholder="First Name"
+        <ScrollView contentContainerStyle={styles.modalScrollViewContent}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Edit Profile</Text>
+              <Image
+                source={
+                  editedProfile.image
+                    ? { uri: editedProfile.image }
+                    : renderUserImageSource()
+                }
+                style={styles.profileImage}
               />
-            </View>
-            {firstNameError ? (
-              <Text style={styles.errorText}>{firstNameError}</Text>
-            ) : null}
-            <View style={styles.inputContainer}>
-              <TextInput
-                value={editedProfile.lastName}
-                onChangeText={(text) => handleInputChange("lastName", text)}
-                style={styles.textInput}
-                placeholder="Last Name"
-              />
-            </View>
-            {lastNameError ? (
-              <Text style={styles.errorText}>{lastNameError}</Text>
-            ) : null}
-            <View style={styles.inputContainer}>
-              <TextInput
-                value={editedProfile.bio}
-                onChangeText={(text) => handleInputChange("bio", text)}
-                style={styles.textInput}
-                placeholder="Bio"
-                multiline={true}
-                numberOfLines={3}
-              />
-            </View>
-            {bioError ? <Text style={styles.errorText}>{bioError}</Text> : null}
-            <View style={styles.inputContainer}>
-              <TextInput
-                value={editedProfile.oldPassword}
-                secureTextEntry={!passwordVisible}
-                onChangeText={(text) => handleInputChange("oldPassword", text)}
-                style={styles.textInput}
-                placeholder="Old Password"
-              />
-              <TouchableOpacity
-                onPress={() => setPasswordVisible(!passwordVisible)}
-                style={styles.eyeIcon}
-              >
-                <Icon
-                  name={passwordVisible ? "eye-off" : "eye"}
-                  size={20}
-                  color="gray"
+              <View style={styles.inputContainer}>
+                <TextInput
+                  value={editedProfile.firstName}
+                  onChangeText={(text) => handleInputChange("firstName", text)}
+                  style={styles.textInput}
+                  placeholder="First Name"
                 />
-              </TouchableOpacity>
-            </View>
-            <View style={styles.inputContainer}>
-              <TextInput
-                value={editedProfile.newPassword}
-                secureTextEntry={!passwordVisible}
-                onChangeText={(text) => handleInputChange("newPassword", text)}
-                style={styles.textInput}
-                placeholder="New Password"
-              />
-              <TouchableOpacity
-                onPress={() => setPasswordVisible(!passwordVisible)}
-                style={styles.eyeIcon}
-              >
-                <Icon
-                  name={passwordVisible ? "eye-off" : "eye"}
-                  size={20}
-                  color="gray"
+              </View>
+              {firstNameError ? (
+                <Text style={styles.errorText}>{firstNameError}</Text>
+              ) : null}
+              <View style={styles.inputContainer}>
+                <TextInput
+                  value={editedProfile.lastName}
+                  onChangeText={(text) => handleInputChange("lastName", text)}
+                  style={styles.textInput}
+                  placeholder="Last Name"
                 />
-              </TouchableOpacity>
-            </View>
-            {passwordError ? (
-              <Text style={styles.errorText}>{passwordError}</Text>
-            ) : null}
-            <Pressable onPress={pickImage} style={styles.imagePickerButton}>
-              <Text style={styles.imagePickerButtonText}>Pick an Image</Text>
-            </Pressable>
-            <View style={styles.modalButtonContainer}>
-              <Pressable
-                onPress={handleSaveProfile}
-                style={styles.saveButton}
-                disabled={validatingOldPassword}
-              >
-                {validatingOldPassword ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Text style={styles.saveButtonText}>Save</Text>
-                )}
+              </View>
+              {lastNameError ? (
+                <Text style={styles.errorText}>{lastNameError}</Text>
+              ) : null}
+              <View style={styles.inputContainer}>
+                <TextInput
+                  value={editedProfile.bio}
+                  onChangeText={(text) => handleInputChange("bio", text)}
+                  style={styles.textInput}
+                  placeholder="Bio"
+                  multiline={true}
+                  numberOfLines={3}
+                />
+              </View>
+              {bioError ? (
+                <Text style={styles.errorText}>{bioError}</Text>
+              ) : null}
+              <View style={styles.inputContainer}>
+                <TextInput
+                  value={editedProfile.oldPassword}
+                  secureTextEntry={!passwordVisible}
+                  onChangeText={(text) =>
+                    handleInputChange("oldPassword", text)
+                  }
+                  style={styles.textInput}
+                  placeholder="Old Password"
+                />
+                <TouchableOpacity
+                  onPress={() => setPasswordVisible(!passwordVisible)}
+                  style={styles.eyeIcon}
+                >
+                  <Icon
+                    name={passwordVisible ? "eye-off" : "eye"}
+                    size={20}
+                    color="gray"
+                  />
+                </TouchableOpacity>
+              </View>
+              <View style={styles.inputContainer}>
+                <TextInput
+                  value={editedProfile.newPassword}
+                  secureTextEntry={!passwordVisible}
+                  onChangeText={(text) =>
+                    handleInputChange("newPassword", text)
+                  }
+                  style={styles.textInput}
+                  placeholder="New Password"
+                />
+                <TouchableOpacity
+                  onPress={() => setPasswordVisible(!passwordVisible)}
+                  style={styles.eyeIcon}
+                >
+                  <Icon
+                    name={passwordVisible ? "eye-off" : "eye"}
+                    size={20}
+                    color="gray"
+                  />
+                </TouchableOpacity>
+              </View>
+              {passwordError ? (
+                <Text style={styles.errorText}>{passwordError}</Text>
+              ) : null}
+              <Pressable onPress={pickImage} style={styles.imagePickerButton}>
+                <Text style={styles.imagePickerButtonText}>Pick an Image</Text>
               </Pressable>
-              <Pressable onPress={handleCancelEdit} style={styles.cancelButton}>
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </Pressable>
+              <View style={styles.modalButtonContainer}>
+                <Pressable
+                  onPress={handleSaveProfile}
+                  style={styles.saveButton}
+                  disabled={validatingOldPassword}
+                >
+                  {validatingOldPassword ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text style={styles.saveButtonText}>Save</Text>
+                  )}
+                </Pressable>
+                <Pressable
+                  onPress={handleCancelEdit}
+                  style={styles.cancelButton}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </Pressable>
+              </View>
             </View>
           </View>
-        </View>
+        </ScrollView>
       </Modal>
       <Modal
         visible={alertVisible}
@@ -623,11 +634,17 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
   },
+  modalScrollViewContent: {
+    flexGrow: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   modalContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "white",
+    marginBottom: 20,
   },
   modalContent: {
     width: 370,
@@ -704,22 +721,30 @@ const styles = StyleSheet.create({
   },
   saveButtonText: {
     color: "white",
-    fontWeight: "bold",
     textAlign: "center",
     fontFamily: "NunitoSans_700Bold",
+    fontSize: 16,
   },
   cancelButton: {
-    backgroundColor: "#ccc",
+    backgroundColor: "white",
     padding: 10,
     borderRadius: 5,
     flex: 1,
     marginLeft: 5,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   cancelButtonText: {
-    color: "white",
-    fontWeight: "bold",
+    color: "#00A8FF",
     textAlign: "center",
     fontFamily: "NunitoSans_700Bold",
+    fontSize: 16,
   },
   alertContainer: {
     flex: 1,

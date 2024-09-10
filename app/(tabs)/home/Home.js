@@ -451,10 +451,9 @@ const styles = StyleSheet.create({
   },
   scrollViewContent: {
     flexGrow: 1,
-    paddingHorizontal: 20,
+    padding: 10,
   },
   title: {
-    marginTop: 10,
     fontSize: 15,
     fontFamily: "NunitoSans_700Bold",
     marginBottom: 10,
