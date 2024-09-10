@@ -361,6 +361,7 @@ const Account = () => {
   return (
     <SafeAreaView style={styles.safeArea} onLayout={onLayoutRootView}>
       <ScrollView contentContainerStyle={styles.scrollViewContent}>
+      <Text style={styles.title}>My Profile</Text>
         <View style={styles.buttonContainer}>
           <Pressable onPress={handleBackToHome} style={styles.backButton}>
             <AntDesign name="arrowleft" size={22} color="#2d2e2e" />
@@ -529,11 +530,19 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: 20,
   },
+  title: {
+    marginTop: 10,
+    fontSize: 15,
+    fontFamily: "NunitoSans_700Bold",
+    marginBottom: 10,
+    color: "#00A8FF",
+    textAlign: "center",
+    textTransform: "uppercase",
+  },
   buttonContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: 10,
   },
   backButton: {
     padding: 8,

@@ -271,6 +271,7 @@ const Home = () => {
   return (
     <SafeAreaView style={styles.safeArea} onLayout={onLayoutRootView}>
       <ScrollView contentContainerStyle={styles.scrollViewContent}>
+      <Text style={styles.title}>Home</Text>
         <View style={styles.buttonContainer}>
           <Pressable
             style={[
@@ -452,13 +453,21 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: 20,
   },
+  title: {
+    marginTop: 10,
+    fontSize: 15,
+    fontFamily: "NunitoSans_700Bold",
+    marginBottom: 10,
+    color: "#00A8FF",
+    textAlign: "center",
+    textTransform: "uppercase",
+  },
   buttonContainer: {
     marginHorizontal: 10,
     marginVertical: 10,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    marginTop: 10,
   },
   filterButton: {
     backgroundColor: "white",

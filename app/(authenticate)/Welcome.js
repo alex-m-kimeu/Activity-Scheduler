@@ -7,7 +7,7 @@ import {
   Pressable,
   ScrollView,
 } from "react-native";
-import React, { useEffect, useCallback } from "react";
+import React, { useCallback } from "react";
 import Bg from "../../assets/images/bg.png";
 import { useRouter } from "expo-router";
 import { useFonts, NunitoSans_400Regular, NunitoSans_700Bold, NunitoSans_600SemiBold } from '@expo-google-fonts/nunito-sans';
