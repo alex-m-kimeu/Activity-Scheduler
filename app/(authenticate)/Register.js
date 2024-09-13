@@ -17,20 +17,25 @@ import { useRouter } from "expo-router";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Logo from "../../assets/images/logo.png";
-import { API_BASE_URL } from "@env";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+import { API_BASE_URL } from "@env";
 import { useFonts, NunitoSans_400Regular, NunitoSans_700Bold } from '@expo-google-fonts/nunito-sans';
 import * as SplashScreen from 'expo-splash-screen';
 
 SplashScreen.preventAutoHideAsync();
 
-const Login = () => {
+const Register = () => {
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const [firstNameError, setFirstNameError] = useState("");
+  const [lastNameError, setLastNameError] = useState("");
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
-  const [passwordVisible, setPasswordVisible] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [alertVisible, setAlertVisible] = useState(false);
   const router = useRouter();
 
   let [fontsLoaded] = useFonts({
@@ -45,7 +50,7 @@ const Login = () => {
   }, [fontsLoaded]);
 
   useEffect(() => {
-    const checkLoginStatus = async () => {
+    const checkSignupStatus = async () => {
       try {
         const token = await AsyncStorage.getItem("authToken");
         if (token) {
@@ -55,10 +60,22 @@ const Login = () => {
         console.error("Error retrieving the token:", error);
       }
     };
-    checkLoginStatus();
+    checkSignupStatus();
   }, []);
 
-  const handleLogin = async () => {
+  const handleRegister = async () => {
+    if (!firstName) {
+      setFirstNameError("First name is required");
+    } else {
+      setFirstNameError("");
+    }
+  
+    if (!lastName) {
+      setLastNameError("Last name is required");
+    } else {
+      setLastNameError("");
+    }
+  
     if (!email) {
       setEmailError("Email is required");
     } else {
@@ -71,34 +88,41 @@ const Login = () => {
       setPasswordError("");
     }
   
-    if (!email || !password) {
+    if (!firstName || !lastName || !email || !password) {
       return;
     }
   
     setLoading(true);
     const user = {
+      first_name: firstName,
+      last_name: lastName,
       email: email.toLowerCase(),
       password: password,
     };
   
     try {
-      const response = await axios.post(`https://3b01-2c0f-2a80-10c0-4210-dc36-f099-6af0-d02e.ngrok-free.app/signin`, user);
+      const response = await axios.post(`${API_BASE_URL}/signup`, user);
       const token = response.data.access_token;
       if (token) {
         await AsyncStorage.setItem("authToken", token);
-        router.replace("/(tabs)/home");
+        setAlertVisible(true);
+        setFirstName("");
+        setLastName("");
+        setEmail("");
+        setPassword("");
       } else {
         setPasswordError("Token is null or undefined");
       }
     } catch (error) {
       if (error.response && error.response.data && error.response.data.error) {
         const errorMessage = error.response.data.error;
-        if (errorMessage === "User does not exist") {
+        if (errorMessage === "Email already exists") {
           setEmailError(errorMessage);
-        } else if (errorMessage === "Incorrect password") {
-          setPasswordError(errorMessage);
         } else {
-          setPasswordError("An unexpected error occurred");
+          setFirstNameError(errorMessage.first_name || "");
+          setLastNameError(errorMessage.last_name || "");
+          setEmailError(errorMessage.email || "");
+          setPasswordError(errorMessage.password || "An unexpected error occurred");
         }
       } else {
         setPasswordError("An unexpected error occurred");
@@ -108,22 +132,58 @@ const Login = () => {
     }
   };
 
+  const handleAlertDismiss = () => {
+    setAlertVisible(false);
+    router.replace("/(tabs)/home");
+  };
+
   if (!fontsLoaded) {
     return null;
   }
 
   return (
     <SafeAreaView style={styles.safeArea} onLayout={onLayoutRootView}>
-      <KeyboardAvoidingView style={styles.keyboardAvoidingView} behavior="padding">
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoidingView}
+        behavior="padding"
+      >
         <ScrollView contentContainerStyle={styles.scrollViewContent}>
           <View style={styles.logoContainer}>
             <Image source={Logo} style={styles.logo} />
           </View>
           <View style={styles.headerContainer}>
-            <Text style={styles.headerText}>Welcome Back</Text>
-            <Text style={styles.subHeaderText}>Login to your account to continue</Text>
+            <Text style={styles.headerText}>Get Started</Text>
+            <Text style={styles.subHeaderText}>Create your account now</Text>
           </View>
           <View style={styles.formContainer}>
+            <View style={styles.inputContainer}>
+              <TextInput
+                value={firstName}
+                onChangeText={(text) => {
+                  setFirstName(text);
+                  setFirstNameError("");
+                }}
+                style={styles.textInput}
+                placeholder="First name"
+              />
+            </View>
+            {firstNameError ? (
+              <Text style={styles.errorText}>{firstNameError}</Text>
+            ) : null}
+            <View style={styles.inputContainer}>
+              <TextInput
+                value={lastName}
+                onChangeText={(text) => {
+                  setLastName(text);
+                  setLastNameError("");
+                }}
+                style={styles.textInput}
+                placeholder="Last name"
+              />
+            </View>
+            {lastNameError ? (
+              <Text style={styles.errorText}>{lastNameError}</Text>
+            ) : null}
             <View style={styles.inputContainer}>
               <TextInput
                 value={email}
@@ -163,13 +223,13 @@ const Login = () => {
             {passwordError ? (
               <Text style={styles.errorText}>{passwordError}</Text>
             ) : null}
-            <Pressable onPress={handleLogin} style={styles.loginButton}>
-              <Text style={styles.loginButtonText}>Login</Text>
+            <Pressable onPress={handleRegister} style={styles.registerButton}>
+              <Text style={styles.registerButtonText}>Register</Text>
             </Pressable>
-            <View style={styles.signUpContainer}>
-              <Text style={styles.signUpText}>Don't have an account?</Text>
-              <Pressable onPress={() => router.replace("/Register")}>
-                <Text style={styles.signUpLink}>Sign up</Text>
+            <View style={styles.loginContainer}>
+              <Text style={styles.loginText}>Have an account?</Text>
+              <Pressable onPress={() => router.replace("/Login")}>
+                <Text style={styles.loginLink}>Login</Text>
               </Pressable>
             </View>
           </View>
@@ -182,11 +242,29 @@ const Login = () => {
           </View>
         </Modal>
       )}
+      <Modal
+        visible={alertVisible}
+        animationType="slide"
+        onRequestClose={handleAlertDismiss}
+      >
+        <View style={styles.alertContainer}>
+          <View style={styles.alertBox}>
+            <Text style={styles.alertTitle}>Welcome onboard</Text>
+            <Text style={styles.alertMessage}>You have been registered successfully</Text>
+            <Pressable
+              style={styles.alertButton}
+              onPress={handleAlertDismiss}
+            >
+              <Text style={styles.alertButtonText}>OK</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
 
-export default Login;
+export default Register;
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -213,35 +291,29 @@ const styles = StyleSheet.create({
   },
   headerText: {
     fontSize: 30,
-    fontWeight: "700",
+    fontWeight: "600",
     marginTop: 20,
     color: "#2d2e2e",
     fontFamily: "NunitoSans_700Bold",
   },
   subHeaderText: {
     fontSize: 14,
-    fontWeight: "400",
+    fontWeight: "300",
     color: "#4b5563",
     fontFamily: "NunitoSans_400Regular",
   },
   formContainer: {
     marginTop: 20,
-    width: '100%',
+    width: "100%",
     paddingHorizontal: 20,
-  },
-  errorText: {
-    color: "red",
-    marginTop: 5,
-    marginLeft: 15,
-    fontFamily: "NunitoSans_400Regular",
   },
   inputContainer: {
     borderWidth: 1,
     borderColor: "#ddd",
     borderRadius: 5,
     paddingVertical: 4,
-    marginTop: 30,
-    width: '100%',
+    marginTop: 20,
+    width: "100%",
     backgroundColor: "#fff",
     flexDirection: "row",
     alignItems: "center",
@@ -257,23 +329,30 @@ const styles = StyleSheet.create({
   eyeIcon: {
     padding: 10,
   },
-  loginButton: {
+  errorText: {
+    color: "red",
+    marginTop: 5,
+    marginLeft: 15,
+    fontFamily: "NunitoSans_400Regular",
+  },
+  registerButton: {
     width: 100,
     backgroundColor: "#00A8FF",
     padding: 12,
     borderRadius: 5,
     marginLeft: "auto",
     marginRight: "auto",
-    marginTop: 40,
+    marginTop: 30,
   },
-  loginButtonText: {
+  registerButtonText: {
     textAlign: "center",
     color: "white",
     fontWeight: "bold",
     fontSize: 15,
-    fontFamily: "NunitoSans_700Bold", 
+    fontFamily: "NunitoSans_700Bold",
+ 
   },
-  signUpContainer: {
+  loginContainer: {
     marginTop: 20,
     flexDirection: "row",
     gap: 5,
@@ -281,17 +360,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 20,
   },
-  signUpText: {
+  loginText: {
     fontSize: 15,
     color: "#4b5563",
     fontWeight: "400",
-    fontFamily: "NunitoSans_400Regular", 
+    fontFamily: "NunitoSans_400Regular",
   },
-  signUpLink: {
+  loginLink: {
     fontSize: 15,
     color: "#00A8FF",
-    fontFamily: "NunitoSans_400Regular",
     textDecorationLine: "underline",
+    fontFamily: "NunitoSans_400Regular", 
   },
   loadingContainer: {
     flex: 1,
@@ -303,5 +382,53 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+  },
+  alertContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  alertBox: {
+    width: 350,
+    padding: 20,
+    backgroundColor: "#F3F4F6",
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  alertTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 10,
+    textAlign: "center",
+    fontFamily: "NunitoSans_700Bold",
+  },
+  alertMessage: {
+    fontSize: 16,
+    marginBottom: 20,
+    textAlign: "center",
+    fontWeight: "400",
+    fontFamily: "NunitoSans_400Regular",
+  },
+  alertButton: {
+    backgroundColor: "#00A8FF",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+  },
+  alertButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "bold",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    fontFamily: "NunitoSans_700Bold", 
   },
 });

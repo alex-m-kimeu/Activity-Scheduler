@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { Calendar } from "react-native-calendars";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { API_BASE_URL } from "@env";
 import Bg from "../../../assets/images/bg.png";
 import {
   useFonts,
@@ -54,7 +55,7 @@ const ActivitiesCalendar = () => {
         return;
       }
       const response = await fetch(
-        `https://3b01-2c0f-2a80-10c0-4210-dc36-f099-6af0-d02e.ngrok-free.app/activities/date?date=${date}`,
+        `${API_BASE_URL}/activities/date?date=${date}`,
         {
           method: "GET",
           headers: {
