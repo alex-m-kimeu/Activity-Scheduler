@@ -90,7 +90,7 @@ const Account = () => {
         return;
       }
       const response = await fetch(
-        `https://3b01-2c0f-2a80-10c0-4210-dc36-f099-6af0-d02e.ngrok-free.app/user`,
+        `${API_BASE_URL}/user`,
         {
           method: "GET",
           headers: {
@@ -133,7 +133,7 @@ const Account = () => {
       }
 
       const response = await fetch(
-        `https://3b01-2c0f-2a80-10c0-4210-dc36-f099-6af0-d02e.ngrok-free.app/validate-old-password`,
+        `${API_BASE_URL}/validate-old-password`,
         {
           method: "POST",
           headers: {

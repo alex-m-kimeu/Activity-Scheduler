@@ -357,21 +357,6 @@ const Home = () => {
     }
   };
 
-  // const pickImage = async () => {
-  //   let result = await ImagePicker.launchImageLibraryAsync({
-  //     mediaTypes: ImagePicker.MediaTypeOptions.Images,
-  //     allowsEditing: true,
-  //     aspect: [4, 3],
-  //     quality: 1,
-  //   });
-
-  //   if (!result.canceled) {
-  //     setEditedActivities((prevState) => ({
-  //       ...prevState,
-  //       image: result.assets[0].uri,
-  //     }));
-  //   }
-  // };
   const pickImage = async (isEditing = false) => {
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -549,22 +534,6 @@ const Home = () => {
       setLoading(false);
     }
   };
-
-  // const handlePickImage = async () => {
-  //   let result = await ImagePicker.launchImageLibraryAsync({
-  //     mediaTypes: ImagePicker.MediaTypeOptions.Images,
-  //     allowsEditing: true,
-  //     aspect: [4, 3],
-  //     quality: 1,
-  //   });
-
-  //   if (!result.canceled) {
-  //     setNewActivity((prevState) => ({
-  //       ...prevState,
-  //       image: result.assets[0].uri,
-  //     }));
-  //   }
-  // };
 
   const handleCancelCreate = () => {
     setCreateModalVisible(false);
