@@ -82,7 +82,7 @@ const Login = () => {
     };
   
     try {
-      const response = await axios.post(`${API_BASE_URL}/signin`, user);
+      const response = await axios.post(`${API_BASE_URL}/login`, user);
       const token = response.data.access_token;
       if (token) {
         await AsyncStorage.setItem("authToken", token);

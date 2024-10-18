@@ -36,7 +36,6 @@ const Account = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [profileUpdateLoading, setProfileUpdateLoading] = useState(false);
-  const [validatingOldPassword, setValidatingOldPassword] = useState(false);
   const [editedProfile, setEditedProfile] = useState({
     firstName: "",
     lastName: "",
@@ -123,47 +122,6 @@ const Account = () => {
 
   const handleEditProfile = () => setModalVisible(true);
 
-  const validateOldPassword = async () => {
-    try {
-      setValidatingOldPassword(true);
-      const token = await AsyncStorage.getItem("authToken");
-      if (!token) {
-        console.error("No token found");
-        return false;
-      }
-
-      const response = await fetch(
-        `${API_BASE_URL}/validate-old-password`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ old_password: editedProfile.oldPassword }),
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        if (errorData.error === "Old password does not match") {
-          setPasswordError("Old password does not match");
-        } else {
-          console.error("Failed to validate old password:", errorData);
-        }
-        return false;
-      }
-
-      setPasswordError("");
-      return true;
-    } catch (error) {
-      console.error("Error validating old password:", error.message);
-      return false;
-    } finally {
-      setValidatingOldPassword(false);
-    }
-  };
-
   const handleSaveProfile = async () => {
     const errors = {};
 
@@ -202,6 +160,8 @@ const Account = () => {
       } else if (!/[!@#$%^&*(),.?\":{}|<>]/.test(editedProfile.newPassword)) {
         errors.newPassword =
           "Password should contain at least one special character";
+      } else if (editedProfile.oldPassword === editedProfile.newPassword) {
+        errors.newPassword = "New password cannot be the same as the old password";
       } else {
         setPasswordError("");
       }
@@ -210,13 +170,6 @@ const Account = () => {
 
     if (Object.keys(errors).length > 0) {
       return;
-    }
-
-    if (editedProfile.oldPassword) {
-      const isOldPasswordValid = await validateOldPassword();
-      if (!isOldPasswordValid) {
-        return;
-      }
     }
 
     try {
@@ -277,6 +230,8 @@ const Account = () => {
           }
         } else if (errorData.error === "Old password does not match") {
           setPasswordError("Old password does not match");
+        } else if (errorData.error === "New password cannot be the same as the old password") {
+          setPasswordError("New password cannot be the same as the old password");
         } else {
           console.error("Failed to update profile:", errorData);
           throw new Error("Failed to update profile");
@@ -483,9 +438,8 @@ const Account = () => {
                 <Pressable
                   onPress={handleSaveProfile}
                   style={styles.saveButton}
-                  disabled={validatingOldPassword}
                 >
-                  {validatingOldPassword ? (
+                  {profileUpdateLoading ? (
                     <ActivityIndicator size="small" color="#fff" />
                   ) : (
                     <Text style={styles.saveButtonText}>Save</Text>

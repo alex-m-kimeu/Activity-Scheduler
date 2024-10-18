@@ -101,7 +101,7 @@ const Register = () => {
     };
   
     try {
-      const response = await axios.post(`${API_BASE_URL}/signup`, user);
+      const response = await axios.post(`${API_BASE_URL}/registerq`, user);
       const token = response.data.access_token;
       if (token) {
         await AsyncStorage.setItem("authToken", token);
