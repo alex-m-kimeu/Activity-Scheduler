@@ -32,6 +32,7 @@ SplashScreen.preventAutoHideAsync();
 const Account = () => {
   const router = useRouter();
   const [user, setUser] = useState(null);
+  const [bookmarkedActivities, setBookmarkedActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
@@ -64,6 +65,7 @@ const Account = () => {
 
   useEffect(() => {
     fetchUserProfile();
+    fetchBookmarkedActivities();
   }, []);
 
   useEffect(() => {
@@ -88,15 +90,12 @@ const Account = () => {
         setLoading(false);
         return;
       }
-      const response = await fetch(
-        `${API_BASE_URL}/user`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await fetch(`${API_BASE_URL}/user`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       if (!response.ok) {
         const errorData = await response.json();
         console.error("Failed to fetch user profile:", errorData);
@@ -284,6 +283,31 @@ const Account = () => {
     }
   };
 
+  const fetchBookmarkedActivities = async () => {
+    try {
+      const token = await AsyncStorage.getItem("authToken");
+      if (!token) {
+        console.error("No token found");
+        return;
+      }
+      const response = await fetch(`${API_BASE_URL}/bookmark-activity`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Failed to fetch bookmarked activities:", errorData);
+        throw new Error("Failed to fetch bookmarked activities");
+      }
+      const data = await response.json();
+      setBookmarkedActivities(data);
+    } catch (error) {
+      console.error("Error fetching bookmarked activities:", error.message);
+    }
+  };
+
   const handleLogout = async () => {
     try {
       await AsyncStorage.removeItem("authToken");
@@ -333,6 +357,17 @@ const Account = () => {
             <AntDesign name="arrowright" size={20} color="white" />
           </Pressable>
         </View>
+        <Text style={styles.title}>Bookmarked Activities</Text>
+        {bookmarkedActivities.length === 0 ? (
+          <Text style={styles.noActivitiesText}>No bookmarked activities</Text>
+        ) : (
+          bookmarkedActivities.map((activity) => (
+            <View key={activity.id} style={styles.activityCard}>
+              <Text style={styles.activityTitle}>{activity.title}</Text>
+              {/* Display other activity details */}
+            </View>
+          ))
+        )}
       </ScrollView>
       <Modal
         animationType="slide"
@@ -521,7 +556,7 @@ const styles = StyleSheet.create({
   },
   profileContainer: {
     alignItems: "center",
-    marginTop: 80,
+    marginTop: 40,
   },
   profileImage: {
     width: 150,

@@ -62,6 +62,7 @@ const Home = () => {
   const [startDateError, setStartDateError] = useState("");
   const [endDateError, setEndDateError] = useState("");
   const [imageError, setImageError] = useState("");
+  const [errorMessage, setErrorMessage] = useState(null);
 
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
@@ -548,6 +549,49 @@ const Home = () => {
     });
   };
 
+  const handleBookmarkActivity = async (activityId) => {
+    setLoading(true);
+    setErrorMessage(null);
+    try {
+      const token = await AsyncStorage.getItem("authToken");
+      if (!token) {
+        setErrorMessage("No token found");
+        setLoading(false);
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/bookmark-activity/${activityId}`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        if (errorData.error) {
+          setErrorMessage(errorData.error);
+        } else {
+          setErrorMessage("Failed to bookmark activity");
+        }
+        setLoading(false);
+        return;
+      }
+
+      const updatedActivity = await response.json();
+      setActivities((prevActivities) =>
+        prevActivities.map((activity) =>
+          activity.id === updatedActivity.activity_id ? updatedActivity : activity
+        )
+      );
+    } catch (error) {
+      setErrorMessage("Error bookmarking activity: " + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDelete = async (activityId) => {
     setLoading(true);
     try {
@@ -654,6 +698,8 @@ const Home = () => {
                 filter={filter}
                 handleEditActivity={handleEditActivity}
                 handleDelete={handleDelete}
+                handleBookmarkActivity={handleBookmarkActivity}
+                errorMessage={errorMessage}
               />
             ))}
           </View>

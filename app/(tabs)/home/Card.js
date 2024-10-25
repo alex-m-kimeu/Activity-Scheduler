@@ -11,7 +11,7 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 SplashScreen.preventAutoHideAsync();
 
-const Card = ({ activity, filter, handleEditActivity, handleDelete }) => {
+const Card = ({ activity, filter, handleEditActivity, handleBookmarkActivity, handleDelete, errorMessage }) => {
   let [fontsLoaded] = useFonts({
     NunitoSans_400Regular,
     NunitoSans_700Bold,
@@ -28,6 +28,13 @@ const Card = ({ activity, filter, handleEditActivity, handleDelete }) => {
       {activity.image && (
         <Image source={{ uri: activity.image }} style={styles.cardImage} />
       )}
+      <View style={styles.bookmarkIconContainer}>
+        <TouchableOpacity
+          onPress={() => handleBookmarkActivity(activity.id)}
+        >
+          <MaterialIcons name="bookmark-add" size={24} color="white" />
+        </TouchableOpacity>
+      </View>
       <View style={styles.cardContent}>
         <View style={styles.cardHeader}>
           <Text style={styles.cardTitle}>{activity.title}</Text>
@@ -51,6 +58,7 @@ const Card = ({ activity, filter, handleEditActivity, handleDelete }) => {
             </TouchableOpacity>
           </View>
         )}
+        {errorMessage && <Text style={styles.errorText}>{errorMessage}</Text>}
       </View>
     </View>
   );
@@ -72,10 +80,17 @@ const styles = StyleSheet.create({
     elevation: 5,
     marginVertical: 10,
     overflow: "hidden",
+    position: "relative",
   },
   cardImage: {
     width: "100%",
     height: 200,
+  },
+  bookmarkIconContainer: {
+    position: "absolute",
+    top: 5,
+    right: 5,
+    zIndex: 1,
   },
   cardContent: {
     padding: 20,
@@ -125,5 +140,9 @@ const styles = StyleSheet.create({
   },
   editButtonText: {
     color: "white",
+  },
+  errorText: {
+    color: "red",
+    marginTop: 10,
   },
 });
