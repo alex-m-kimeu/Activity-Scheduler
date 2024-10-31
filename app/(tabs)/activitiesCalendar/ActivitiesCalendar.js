@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { Calendar } from "react-native-calendars";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { API_BASE_URL } from "@env";
+import Constants from 'expo-constants';
 import Bg from "../../../assets/images/bg.png";
 import {
   useFonts,
@@ -25,6 +25,7 @@ import * as SplashScreen from "expo-splash-screen";
 SplashScreen.preventAutoHideAsync();
 
 const ActivitiesCalendar = () => {
+  const API_BASE_URL = Constants.expoConfig.extra.apiBaseUrl;
   const [selectedDate, setSelectedDate] = useState("");
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(false);

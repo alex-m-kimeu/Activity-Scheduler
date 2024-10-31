@@ -19,7 +19,11 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -30,8 +34,8 @@
       "expo-router",
       "expo-font"
     ],
-    "experiments": {
-      "typedRoutes": true
+    "extra": {
+      "apiBaseUrl": "https://56cd-2c0f-2a80-10f3-1b10-8849-4bf2-7b5-421b.ngrok-free.app"
     }
   }
 }

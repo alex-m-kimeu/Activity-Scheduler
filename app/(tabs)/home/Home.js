@@ -13,7 +13,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { API_BASE_URL } from "@env";
+import Constants from 'expo-constants';
 import * as SplashScreen from "expo-splash-screen";
 import * as ImagePicker from "expo-image-picker";
 import { Picker } from "@react-native-picker/picker";
@@ -29,7 +29,9 @@ import AntDesign from "@expo/vector-icons/AntDesign";
 SplashScreen.preventAutoHideAsync();
 
 const Home = () => {
+  const API_BASE_URL = Constants.expoConfig.extra.apiBaseUrl;
   const [activities, setActivities] = useState([]);
+  const [activityErrors, setActivityErrors] = useState({});
   const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
@@ -77,7 +79,7 @@ const Home = () => {
       await SplashScreen.hideAsync();
     }
   }, [fontsLoaded]);
-
+  
   useEffect(() => {
     fetchActivities("");
   }, []);
@@ -89,6 +91,7 @@ const Home = () => {
 
   const fetchActivities = async (endpoint = "") => {
     setLoading(true);
+    setActivityErrors({});
     try {
       const token = await AsyncStorage.getItem("authToken");
       if (!token) {
@@ -140,6 +143,7 @@ const Home = () => {
       end_date: activity.end_date ? new Date(activity.end_date) : null,
     });
     setModalVisible(true);
+    setActivityErrors({});
   };
 
   const formatDateTime = (date) => {
@@ -332,26 +336,26 @@ const Home = () => {
     }
 
     switch (name) {
-      case 'title':
-        setTitleError('');
+      case "title":
+        setTitleError("");
         break;
-      case 'description':
-        setDescriptionError('');
+      case "description":
+        setDescriptionError("");
         break;
-      case 'location':
-        setLocationError('');
+      case "location":
+        setLocationError("");
         break;
-      case 'category':
-        setCategoryError('');
+      case "category":
+        setCategoryError("");
         break;
-      case 'start_date':
-        setStartDateError('');
+      case "start_date":
+        setStartDateError("");
         break;
-      case 'end_date':
-        setEndDateError('');
+      case "end_date":
+        setEndDateError("");
         break;
-      case 'image':
-        setImageError('');
+      case "image":
+        setImageError("");
         break;
       default:
         break;
@@ -365,7 +369,7 @@ const Home = () => {
       aspect: [4, 3],
       quality: 1,
     });
-  
+
     if (!result.canceled) {
       if (isEditing) {
         setEditedActivities((prevState) => ({
@@ -378,13 +382,13 @@ const Home = () => {
           image: result.assets[0].uri,
         }));
       }
-      setImageError('');
+      setImageError("");
     }
   };
 
   const handleCreateActivity = async () => {
     const errors = {};
-  
+
     if (!newActivity.title.trim()) {
       errors.title = "Title is required";
     } else {
@@ -394,7 +398,7 @@ const Home = () => {
       }
     }
     setTitleError(errors.title || "");
-  
+
     if (!newActivity.description.trim()) {
       errors.description = "Description is required";
     } else {
@@ -404,12 +408,12 @@ const Home = () => {
       }
     }
     setDescriptionError(errors.description || "");
-  
+
     if (!newActivity.location.trim()) {
       errors.location = "Location is required";
     }
     setLocationError(errors.location || "");
-  
+
     if (!newActivity.category.trim()) {
       errors.category = "Category is required";
     } else {
@@ -421,7 +425,7 @@ const Home = () => {
       }
     }
     setCategoryError(errors.category || "");
-  
+
     if (!newActivity.start_date) {
       errors.start_date = "Start date is required";
     } else {
@@ -429,11 +433,12 @@ const Home = () => {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       if (startDate < today) {
-        errors.start_date = "Start date should be equal to today or in the future";
+        errors.start_date =
+          "Start date should be equal to today or in the future";
       }
     }
     setStartDateError(errors.start_date || "");
-  
+
     if (!newActivity.end_date) {
       errors.end_date = "End date is required";
     } else {
@@ -444,32 +449,32 @@ const Home = () => {
       }
     }
     setEndDateError(errors.end_date || "");
-  
+
     if (!newActivity.image) {
       errors.image = "Image is required";
     }
     setImageError(errors.image || "");
-  
+
     if (Object.keys(errors).length > 0) {
       return;
     }
-  
+
     setLoading(true);
-  
+
     try {
       const token = await AsyncStorage.getItem("authToken");
       if (!token) {
         console.error("No token found");
         return;
       }
-  
+
       const formattedStartDate = newActivity.start_date
         ? formatDateTime(new Date(newActivity.start_date))
         : null;
       const formattedEndDate = newActivity.end_date
         ? formatDateTime(new Date(newActivity.end_date))
         : null;
-  
+
       const formData = new FormData();
       formData.append("title", newActivity.title);
       formData.append("description", newActivity.description);
@@ -477,22 +482,22 @@ const Home = () => {
       formData.append("category", newActivity.category);
       formData.append("start_date", formattedStartDate);
       formData.append("end_date", formattedEndDate);
-  
+
       if (newActivity.image) {
         const uri = newActivity.image;
         const uriParts = uri.split(".");
         const fileType = uriParts[uriParts.length - 1];
-  
+
         const response = await fetch(uri);
         const blob = await response.blob();
-  
+
         formData.append("image", {
           uri,
           name: `photo.${fileType}`,
           type: `image/${fileType}`,
         });
       }
-  
+
       const response = await fetch(`${API_BASE_URL}/activities`, {
         method: "POST",
         headers: {
@@ -500,7 +505,7 @@ const Home = () => {
         },
         body: formData,
       });
-  
+
       const contentType = response.headers.get("content-type");
       if (!response.ok) {
         const errorData =
@@ -510,18 +515,18 @@ const Home = () => {
         console.error("Failed to create activity:", errorData);
         throw new Error("Failed to create activity");
       }
-  
+
       if (contentType && contentType.includes("application/json")) {
         const createdActivity = await response.json();
         setActivities((prevActivities) => [createdActivity, ...prevActivities]);
         setCreateModalVisible(false);
         setNewActivity({
-          title: '',
-          description: '',
-          location: '',
-          category: 'Outdoors',
-          start_date: '',
-          end_date: '',
+          title: "",
+          description: "",
+          location: "",
+          category: "Outdoors",
+          start_date: "",
+          end_date: "",
           image: null,
         });
       } else {
@@ -552,29 +557,39 @@ const Home = () => {
   const handleBookmarkActivity = async (activityId) => {
     setLoading(true);
     setErrorMessage(null);
+    setActivityErrors((prevErrors) => ({
+      ...prevErrors,
+      [activityId]: null,
+    }));
     try {
       const token = await AsyncStorage.getItem("authToken");
       if (!token) {
-        setErrorMessage("No token found");
+        setActivityErrors((prevErrors) => ({
+          ...prevErrors,
+          [activityId]: "No token found",
+        }));
         setLoading(false);
         return;
       }
 
-      const response = await fetch(`${API_BASE_URL}/bookmark-activity/${activityId}`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/bookmark-activity/${activityId}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
-        if (errorData.error) {
-          setErrorMessage(errorData.error);
-        } else {
-          setErrorMessage("Failed to bookmark activity");
-        }
+        const errorMessage = errorData.error || "Failed to bookmark activity";
+        setActivityErrors((prevErrors) => ({
+          ...prevErrors,
+          [activityId]: errorMessage,
+        }));
         setLoading(false);
         return;
       }
@@ -582,11 +597,21 @@ const Home = () => {
       const updatedActivity = await response.json();
       setActivities((prevActivities) =>
         prevActivities.map((activity) =>
-          activity.id === updatedActivity.activity_id ? updatedActivity : activity
+          activity.id === updatedActivity.activity_id
+            ? { ...activity, ...updatedActivity }
+            : activity
         )
       );
+
+      setActivityErrors((prevErrors) => {
+        const { [activityId]: _, ...rest } = prevErrors;
+        return rest;
+      });
     } catch (error) {
-      setErrorMessage("Error bookmarking activity: " + error.message);
+      setActivityErrors((prevErrors) => ({
+        ...prevErrors,
+        [activityId]: "Error bookmarking activity: " + error.message,
+      }));
     } finally {
       setLoading(false);
     }
@@ -699,7 +724,7 @@ const Home = () => {
                 handleEditActivity={handleEditActivity}
                 handleDelete={handleDelete}
                 handleBookmarkActivity={handleBookmarkActivity}
-                errorMessage={errorMessage}
+                errorMessage={activityErrors[activity.id]}
               />
             ))}
           </View>
@@ -727,7 +752,9 @@ const Home = () => {
                       style={styles.textInput}
                       placeholder="Title"
                       value={editedActivities.title}
-                      onChangeText={(text) => handleInputChange("title", text, true)}
+                      onChangeText={(text) =>
+                        handleInputChange("title", text, true)
+                      }
                     />
                   </View>
                   {titleError ? (
@@ -800,7 +827,11 @@ const Home = () => {
                         onChange={(event, date) => {
                           setShowStartDatePicker(false);
                           if (date) {
-                            handleInputChange("start_date", date.toISOString(), true);
+                            handleInputChange(
+                              "start_date",
+                              date.toISOString(),
+                              true
+                            );
                           }
                         }}
                       />
@@ -833,7 +864,11 @@ const Home = () => {
                         onChange={(event, date) => {
                           setShowEndDatePicker(false);
                           if (date) {
-                            handleInputChange("end_date", date.toISOString(), true);
+                            handleInputChange(
+                              "end_date",
+                              date.toISOString(),
+                              true
+                            );
                           }
                         }}
                       />
@@ -901,9 +936,7 @@ const Home = () => {
                       style={styles.textInput}
                       placeholder="Title"
                       value={newActivity.title}
-                      onChangeText={(text) =>
-                        handleInputChange("title", text)
-                      }
+                      onChangeText={(text) => handleInputChange("title", text)}
                     />
                   </View>
                   {titleError ? (
@@ -974,10 +1007,7 @@ const Home = () => {
                         onChange={(event, date) => {
                           setShowStartDatePicker(false);
                           if (date) {
-                            handleInputChange(
-                              "start_date",
-                              date.toISOString()
-                            );
+                            handleInputChange("start_date", date.toISOString());
                           }
                         }}
                       />
@@ -1010,10 +1040,7 @@ const Home = () => {
                         onChange={(event, date) => {
                           setShowEndDatePicker(false);
                           if (date) {
-                            handleInputChange(
-                              "end_date",
-                              date.toISOString()
-                            );
+                            handleInputChange("end_date", date.toISOString());
                           }
                         }}
                       />

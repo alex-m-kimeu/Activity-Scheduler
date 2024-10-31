@@ -17,14 +17,19 @@ import { useRouter } from "expo-router";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Logo from "../../assets/images/logo.png";
-import { API_BASE_URL } from "@env";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
-import { useFonts, NunitoSans_400Regular, NunitoSans_700Bold } from '@expo-google-fonts/nunito-sans';
-import * as SplashScreen from 'expo-splash-screen';
+import {
+  useFonts,
+  NunitoSans_400Regular,
+  NunitoSans_700Bold,
+} from "@expo-google-fonts/nunito-sans";
+import * as SplashScreen from "expo-splash-screen";
+import Constants from 'expo-constants';
 
 SplashScreen.preventAutoHideAsync();
 
 const Login = () => {
+  const API_BASE_URL = Constants.expoConfig.extra.apiBaseUrl;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [emailError, setEmailError] = useState("");
@@ -64,23 +69,23 @@ const Login = () => {
     } else {
       setEmailError("");
     }
-  
+
     if (!password) {
       setPasswordError("Password is required");
     } else {
       setPasswordError("");
     }
-  
+
     if (!email || !password) {
       return;
     }
-  
+
     setLoading(true);
     const user = {
       email: email.toLowerCase(),
       password: password,
     };
-  
+
     try {
       const response = await axios.post(`${API_BASE_URL}/login`, user);
       const token = response.data.access_token;
@@ -114,14 +119,19 @@ const Login = () => {
 
   return (
     <SafeAreaView style={styles.safeArea} onLayout={onLayoutRootView}>
-      <KeyboardAvoidingView style={styles.keyboardAvoidingView} behavior="padding">
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoidingView}
+        behavior="padding"
+      >
         <ScrollView contentContainerStyle={styles.scrollViewContent}>
           <View style={styles.logoContainer}>
             <Image source={Logo} style={styles.logo} />
           </View>
           <View style={styles.headerContainer}>
             <Text style={styles.headerText}>Welcome Back</Text>
-            <Text style={styles.subHeaderText}>Login to your account to continue</Text>
+            <Text style={styles.subHeaderText}>
+              Login to your account to continue
+            </Text>
           </View>
           <View style={styles.formContainer}>
             <View style={styles.inputContainer}>
@@ -226,7 +236,7 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     marginTop: 20,
-    width: '100%',
+    width: "100%",
     paddingHorizontal: 20,
   },
   errorText: {
@@ -241,7 +251,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     paddingVertical: 4,
     marginTop: 30,
-    width: '100%',
+    width: "100%",
     backgroundColor: "#fff",
     flexDirection: "row",
     alignItems: "center",
@@ -271,7 +281,7 @@ const styles = StyleSheet.create({
     color: "white",
     fontWeight: "bold",
     fontSize: 15,
-    fontFamily: "NunitoSans_700Bold", 
+    fontFamily: "NunitoSans_700Bold",
   },
   signUpContainer: {
     marginTop: 20,
@@ -285,7 +295,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#4b5563",
     fontWeight: "400",
-    fontFamily: "NunitoSans_400Regular", 
+    fontFamily: "NunitoSans_400Regular",
   },
   signUpLink: {
     fontSize: 15,

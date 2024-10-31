@@ -18,13 +18,14 @@ import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Logo from "../../assets/images/logo.png";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
-import { API_BASE_URL } from "@env";
+import Constants from 'expo-constants';
 import { useFonts, NunitoSans_400Regular, NunitoSans_700Bold } from '@expo-google-fonts/nunito-sans';
 import * as SplashScreen from 'expo-splash-screen';
 
 SplashScreen.preventAutoHideAsync();
 
 const Register = () => {
+  const API_BASE_URL = Constants.expoConfig.extra.apiBaseUrl;
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -101,7 +102,7 @@ const Register = () => {
     };
   
     try {
-      const response = await axios.post(`${API_BASE_URL}/registerq`, user);
+      const response = await axios.post(`${API_BASE_URL}/register`, user);
       const token = response.data.access_token;
       if (token) {
         await AsyncStorage.setItem("authToken", token);

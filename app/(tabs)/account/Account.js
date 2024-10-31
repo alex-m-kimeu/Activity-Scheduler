@@ -15,7 +15,7 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
 import Avatar from "../../../assets/images/avatar.png";
-import { API_BASE_URL } from "@env";
+import Constants from 'expo-constants';
 import { useRouter } from "expo-router";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
@@ -30,6 +30,7 @@ import * as SplashScreen from "expo-splash-screen";
 SplashScreen.preventAutoHideAsync();
 
 const Account = () => {
+  const API_BASE_URL = Constants.expoConfig.extra.apiBaseUrl;
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [bookmarkedActivities, setBookmarkedActivities] = useState([]);
@@ -364,7 +365,6 @@ const Account = () => {
           bookmarkedActivities.map((activity) => (
             <View key={activity.id} style={styles.activityCard}>
               <Text style={styles.activityTitle}>{activity.title}</Text>
-              {/* Display other activity details */}
             </View>
           ))
         )}
