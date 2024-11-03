@@ -26,6 +26,7 @@ import {
   NunitoSans_700Bold,
 } from "@expo-google-fonts/nunito-sans";
 import * as SplashScreen from "expo-splash-screen";
+import Bg from "../../../assets/images/bg.png";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -52,6 +53,7 @@ const Account = () => {
   const [bioError, setBioError] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [alertVisible, setAlertVisible] = useState(false);
+  const [filter, setFilter] = useState("all");
 
   let [fontsLoaded] = useFonts({
     NunitoSans_400Regular,
@@ -284,14 +286,19 @@ const Account = () => {
     }
   };
 
+  useEffect(() => {
+    fetchBookmarkedActivities(filter);
+  }, [filter]);
+  
   const fetchBookmarkedActivities = async () => {
+    setLoading(true);
     try {
       const token = await AsyncStorage.getItem("authToken");
       if (!token) {
         console.error("No token found");
         return;
       }
-      const response = await fetch(`${API_BASE_URL}/bookmark-activity`, {
+      const response = await fetch(`${API_BASE_URL}/bookmark-activity?status=${filter}`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -306,6 +313,8 @@ const Account = () => {
       setBookmarkedActivities(data);
     } catch (error) {
       console.error("Error fetching bookmarked activities:", error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -321,6 +330,11 @@ const Account = () => {
   const handleBackToHome = () => {
     router.replace("/(tabs)/home");
   };
+
+  const filteredActivities = bookmarkedActivities.filter(activity => {
+    if (filter === "all") return true;
+    return activity.user_activities.some(ua => ua.status === filter);
+  });
 
   if (loading || profileUpdateLoading) {
     return (
@@ -359,14 +373,57 @@ const Account = () => {
           </Pressable>
         </View>
         <Text style={styles.title}>Bookmarked Activities</Text>
-        {bookmarkedActivities.length === 0 ? (
-          <Text style={styles.noActivitiesText}>No bookmarked activities</Text>
+        <View style={styles.filterContainer}>
+          <Pressable
+            style={[styles.filterButton, filter === "all" && styles.activeFilterButton]}
+            onPress={() => setFilter("all")}
+          >
+            <Text style={[styles.filterButtonText, filter === "all" && styles.activeFilterButtonText]}>
+              All
+            </Text>
+          </Pressable>
+          <Pressable
+            style={[styles.filterButton, filter === "pending" && styles.activeFilterButton]}
+            onPress={() => setFilter("pending")}
+          >
+            <Text style={[styles.filterButtonText, filter === "pending" && styles.activeFilterButtonText]}>
+              Pending
+            </Text>
+          </Pressable>
+          <Pressable
+            style={[styles.filterButton, filter === "completed" && styles.activeFilterButton]}
+            onPress={() => setFilter("completed")}
+          >
+            <Text style={[styles.filterButtonText, filter === "completed" && styles.activeFilterButtonText]}>
+              Completed
+            </Text>
+          </Pressable>
+        </View>
+        {filteredActivities.length === 0 ? (
+          <View style={styles.noActivitiesContainer}>
+            <Image source={Bg} style={styles.noActivitiesImage} />
+            <Text style={styles.noActivitiesText}>
+              No activities at the moment
+            </Text>
+          </View>
         ) : (
-          bookmarkedActivities.map((activity) => (
-            <View key={activity.id} style={styles.activityCard}>
-              <Text style={styles.activityTitle}>{activity.title}</Text>
-            </View>
-          ))
+          <View style={styles.activitiesContainer}>
+            {filteredActivities.map((activity, index) => (
+              <View key={activity.id} style={styles.card}>
+                {activity.image && (
+                  <Image source={{ uri: activity.image }} style={styles.cardImage} />
+                )}
+                <View style={styles.cardContent}>
+                  <View style={styles.cardHeader}>
+                    <Text style={styles.cardTitle}>{activity.title}</Text>
+                    <Text style={styles.cardCategory}>{activity.category}</Text>
+                  </View>
+                  <Text style={styles.cardDescription}>{activity.description}</Text>
+                  <Text style={styles.cardLocation}>{activity.location}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
         )}
       </ScrollView>
       <Modal
@@ -603,6 +660,114 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "bold",
     fontFamily: "NunitoSans_700Bold",
+  },
+  filterContainer: {
+    marginHorizontal: 5,
+    marginVertical: 5,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  filterButton: {
+    backgroundColor: "white",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 5,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  filterButtonText: {
+    color: "#00A8FF",
+    textAlign: "center",
+    fontFamily: "NunitoSans_400Regular",
+  },
+  filterButtonLast: {
+    marginRight: "auto",
+  },
+  activeFilterButton: {
+    backgroundColor: "#00A8FF",
+  },
+  activeFilterButtonText: {
+    color: "white",
+  },
+  noActivitiesContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    marginVertical: 20,
+  },
+  noActivitiesImage: {
+    width: 250,
+    height: 250,
+  },
+  noActivitiesText: {
+    fontSize: 15,
+    fontWeight: "bold",
+    color: "#4b5563",
+    fontFamily: "NunitoSans_400Regular",
+    marginTop: 20,
+  },
+  activitiesContainer: {
+    marginVertical: 5,
+  },
+  card: {
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+    marginVertical: 8,
+    overflow: "hidden",
+    position: "relative",
+  },
+  cardImage: {
+    width: "100%",
+    height: 200,
+  },
+  cardContent: {
+    padding: 20,
+  },
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 5,
+  },
+  cardTitle: {
+    color: "#2d2e2e",
+    fontFamily: "NunitoSans_700Bold",
+    fontSize: 16,
+  },
+  cardCategory: {
+    color: "#00A8FF",
+    fontFamily: "NunitoSans_700Bold",
+    fontSize: 15,
+  },
+  cardDescription: {
+    color: "#2d2e2e",
+    fontFamily: "NunitoSans_400Regular",
+    fontSize: 14,
+    marginBottom: 5,
+  },
+  cardLocation: {
+    color: "#00A8FF",
+    fontFamily: "NunitoSans_700Bold",
+    fontSize: 15,
+    textAlign: "center",
   },
   loaderContainer: {
     flex: 1,
