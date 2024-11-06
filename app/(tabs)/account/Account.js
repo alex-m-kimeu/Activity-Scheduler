@@ -15,7 +15,7 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
 import Avatar from "../../../assets/images/avatar.png";
-import Constants from 'expo-constants';
+import Constants from "expo-constants";
 import { useRouter } from "expo-router";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
@@ -163,7 +163,8 @@ const Account = () => {
         errors.newPassword =
           "Password should contain at least one special character";
       } else if (editedProfile.oldPassword === editedProfile.newPassword) {
-        errors.newPassword = "New password cannot be the same as the old password";
+        errors.newPassword =
+          "New password cannot be the same as the old password";
       } else {
         setPasswordError("");
       }
@@ -232,8 +233,13 @@ const Account = () => {
           }
         } else if (errorData.error === "Old password does not match") {
           setPasswordError("Old password does not match");
-        } else if (errorData.error === "New password cannot be the same as the old password") {
-          setPasswordError("New password cannot be the same as the old password");
+        } else if (
+          errorData.error ===
+          "New password cannot be the same as the old password"
+        ) {
+          setPasswordError(
+            "New password cannot be the same as the old password"
+          );
         } else {
           console.error("Failed to update profile:", errorData);
           throw new Error("Failed to update profile");
@@ -289,7 +295,7 @@ const Account = () => {
   useEffect(() => {
     fetchBookmarkedActivities(filter);
   }, [filter]);
-  
+
   const fetchBookmarkedActivities = async () => {
     setLoading(true);
     try {
@@ -298,12 +304,15 @@ const Account = () => {
         console.error("No token found");
         return;
       }
-      const response = await fetch(`${API_BASE_URL}/bookmark-activity?status=${filter}`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/bookmark-activity?status=${filter}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
       if (!response.ok) {
         const errorData = await response.json();
         console.error("Failed to fetch bookmarked activities:", errorData);
@@ -315,6 +324,33 @@ const Account = () => {
       console.error("Error fetching bookmarked activities:", error.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const updateActivityStatus = async (activityId) => {
+    try {
+      const token = await AsyncStorage.getItem("authToken");
+      if (!token) {
+        console.error("No token found");
+        return;
+      }
+      const response = await fetch(`${API_BASE_URL}/bookmark-activity/${activityId}`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status: "completed" }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Failed to update activity status:", errorData);
+        throw new Error("Failed to update activity status");
+      }
+      const data = await response.json();
+      fetchBookmarkedActivities();
+    } catch (error) {
+      console.error("Error updating activity status:", error.message);
     }
   };
 
@@ -331,9 +367,9 @@ const Account = () => {
     router.replace("/(tabs)/home");
   };
 
-  const filteredActivities = bookmarkedActivities.filter(activity => {
+  const filteredActivities = bookmarkedActivities.filter((activity) => {
     if (filter === "all") return true;
-    return activity.user_activities.some(ua => ua.status === filter);
+    return activity.user_activities.some((ua) => ua.status === filter);
   });
 
   if (loading || profileUpdateLoading) {
@@ -375,26 +411,50 @@ const Account = () => {
         <Text style={styles.title}>Bookmarked Activities</Text>
         <View style={styles.filterContainer}>
           <Pressable
-            style={[styles.filterButton, filter === "all" && styles.activeFilterButton]}
+            style={[
+              styles.filterButton,
+              filter === "all" && styles.activeFilterButton,
+            ]}
             onPress={() => setFilter("all")}
           >
-            <Text style={[styles.filterButtonText, filter === "all" && styles.activeFilterButtonText]}>
+            <Text
+              style={[
+                styles.filterButtonText,
+                filter === "all" && styles.activeFilterButtonText,
+              ]}
+            >
               All
             </Text>
           </Pressable>
           <Pressable
-            style={[styles.filterButton, filter === "pending" && styles.activeFilterButton]}
+            style={[
+              styles.filterButton,
+              filter === "pending" && styles.activeFilterButton,
+            ]}
             onPress={() => setFilter("pending")}
           >
-            <Text style={[styles.filterButtonText, filter === "pending" && styles.activeFilterButtonText]}>
+            <Text
+              style={[
+                styles.filterButtonText,
+                filter === "pending" && styles.activeFilterButtonText,
+              ]}
+            >
               Pending
             </Text>
           </Pressable>
           <Pressable
-            style={[styles.filterButton, filter === "completed" && styles.activeFilterButton]}
+            style={[
+              styles.filterButton,
+              filter === "completed" && styles.activeFilterButton,
+            ]}
             onPress={() => setFilter("completed")}
           >
-            <Text style={[styles.filterButtonText, filter === "completed" && styles.activeFilterButtonText]}>
+            <Text
+              style={[
+                styles.filterButtonText,
+                filter === "completed" && styles.activeFilterButtonText,
+              ]}
+            >
               Completed
             </Text>
           </Pressable>
@@ -411,15 +471,29 @@ const Account = () => {
             {filteredActivities.map((activity, index) => (
               <View key={activity.id} style={styles.card}>
                 {activity.image && (
-                  <Image source={{ uri: activity.image }} style={styles.cardImage} />
+                  <Image
+                    source={{ uri: activity.image }}
+                    style={styles.cardImage}
+                  />
                 )}
+                <View style={styles.bookmarkIconContainer}>
+                  {activity.user_activities[0].status === "pending" && (
+                    <TouchableOpacity onPress={() => updateActivityStatus(activity.id)}>
+                      <MaterialIcons name="check-box" size={24} color="white" />
+                    </TouchableOpacity>
+                  )}
+                </View>
                 <View style={styles.cardContent}>
                   <View style={styles.cardHeader}>
                     <Text style={styles.cardTitle}>{activity.title}</Text>
                     <Text style={styles.cardCategory}>{activity.category}</Text>
                   </View>
-                  <Text style={styles.cardDescription}>{activity.description}</Text>
-                  <Text style={styles.cardLocation}>{activity.location}</Text>
+                  <Text style={styles.cardDescription}>
+                    {activity.description}
+                  </Text>
+                  <Text style={styles.cardStatus}>
+                    {activity.user_activities[0].status}
+                  </Text>
                 </View>
               </View>
             ))}
@@ -738,6 +812,12 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 200,
   },
+  bookmarkIconContainer: {
+    position: "absolute",
+    top: 8,
+    right: 10,
+    zIndex: 1,
+  },
   cardContent: {
     padding: 20,
   },
@@ -763,11 +843,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 5,
   },
-  cardLocation: {
+  cardStatus: {
     color: "#00A8FF",
     fontFamily: "NunitoSans_700Bold",
     fontSize: 15,
     textAlign: "center",
+    textTransform: "capitalize",
   },
   loaderContainer: {
     flex: 1,
