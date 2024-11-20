@@ -23,7 +23,8 @@
       "permissions": [
         "INTERNET",
         "ACCESS_NETWORK_STATE"
-      ]
+      ],
+      "package": "com.alexkimeu.ActivityScheduler"
     },
     "web": {
       "bundler": "metro",
@@ -35,7 +36,13 @@
       "expo-font"
     ],
     "extra": {
-      "apiBaseUrl": "https://6dac-105-163-2-63.ngrok-free.app"
+      "apiBaseUrl": "https://activity-scheduler-app-backend.onrender.com",
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "bdc09ed9-23f9-4709-b0aa-feb8309c7082"
+      }
     }
   }
 }
