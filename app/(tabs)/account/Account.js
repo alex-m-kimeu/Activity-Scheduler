@@ -334,14 +334,17 @@ const Account = () => {
         console.error("No token found");
         return;
       }
-      const response = await fetch(`${API_BASE_URL}/bookmark-activity/${activityId}`, {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ status: "completed" }),
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/bookmark-activity/${activityId}`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ status: "completed" }),
+        }
+      );
       if (!response.ok) {
         const errorData = await response.json();
         console.error("Failed to update activity status:", errorData);
@@ -351,6 +354,36 @@ const Account = () => {
       fetchBookmarkedActivities();
     } catch (error) {
       console.error("Error updating activity status:", error.message);
+    }
+  };
+
+  const updateActivityPriority = async (activityId, priority) => {
+    try {
+      const token = await AsyncStorage.getItem("authToken");
+      if (!token) {
+        console.error("No token found");
+        return;
+      }
+      const response = await fetch(
+        `${API_BASE_URL}/bookmark-activity/${activityId}`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ priority }),
+        }
+      );
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Failed to update activity priority:", errorData);
+        throw new Error("Failed to update activity priority");
+      }
+      const data = await response.json();
+      fetchBookmarkedActivities();
+    } catch (error) {
+      console.error("Error updating activity priority:", error.message);
     }
   };
 
@@ -367,11 +400,22 @@ const Account = () => {
     router.replace("/(tabs)/home");
   };
 
-  const filteredActivities = bookmarkedActivities.filter((activity) => {
-    if (filter === "all") return true;
-    return activity.user_activities.some((ua) => ua.status === filter);
-  });
+  const sortActivitiesByPriority = (activities) => {
+    const priorityOrder = { high: 1, normal: 2, low: 3 };
+    return activities.sort((a, b) => {
+      const aPriority = a.user_activities[0].priority || "normal";
+      const bPriority = b.user_activities[0].priority || "normal";
+      return priorityOrder[aPriority] - priorityOrder[bPriority];
+    });
+  };
 
+  const filteredActivities = sortActivitiesByPriority(
+    bookmarkedActivities.filter((activity) => {
+      if (filter === "all") return true;
+      return activity.user_activities.some((ua) => ua.status === filter);
+    })
+  );
+  
   if (loading || profileUpdateLoading) {
     return (
       <View style={styles.loaderContainer}>
@@ -478,7 +522,9 @@ const Account = () => {
                 )}
                 <View style={styles.bookmarkIconContainer}>
                   {activity.user_activities[0].status === "pending" && (
-                    <TouchableOpacity onPress={() => updateActivityStatus(activity.id)}>
+                    <TouchableOpacity
+                      onPress={() => updateActivityStatus(activity.id)}
+                    >
                       <MaterialIcons name="check-box" size={24} color="white" />
                     </TouchableOpacity>
                   )}
@@ -491,9 +537,23 @@ const Account = () => {
                   <Text style={styles.cardDescription}>
                     {activity.description}
                   </Text>
-                  <Text style={styles.cardStatus}>
+                  {/* <Text style={styles.cardStatus}>
                     {activity.user_activities[0].status}
-                  </Text>
+                  </Text> */}
+                  <View style={styles.priorityButtonsContainer}>
+                    <TouchableOpacity
+                      onPress={() => updateActivityPriority(activity.id, "low")}
+                    >
+                      <MaterialIcons name="keyboard-double-arrow-down" size={20} color="#ff0000" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() =>
+                        updateActivityPriority(activity.id, "high")
+                      }
+                    >
+                      <MaterialIcons name="keyboard-double-arrow-up" size={24} color="#00FF00" />
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
             ))}
@@ -849,6 +909,11 @@ const styles = StyleSheet.create({
     fontSize: 15,
     textAlign: "center",
     textTransform: "capitalize",
+  },
+  priorityButtonsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 10,
   },
   loaderContainer: {
     flex: 1,
